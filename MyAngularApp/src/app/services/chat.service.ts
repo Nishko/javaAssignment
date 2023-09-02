@@ -16,5 +16,25 @@ export class ChatService {
   getGroups(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/groups`);
   }
+
+  promoteUser(username: string) {
+    return this.http.post('/api/promoteUser', { username });
+  }
+
+  removeUser(username: string) {
+    return this.http.delete(`/api/removeUser/${username}`);
+  }
+
+  createGroup(groupName: string) {
+    return this.http.post('/api/createGroup', { groupName });
+  }
+
+  removeGroup(groupName: string) {
+    return this.http.delete(`/api/removeGroup/${groupName}`);
+  }
+
+  joinChannel(groupName: string, channelName: string) {
+    return this.http.post('/api/joinChannel', { groupName, channelName });
+  }
 }
 
