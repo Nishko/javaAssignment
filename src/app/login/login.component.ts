@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../auth.service';
 
 @Component({
   selector: 'app-login',
@@ -13,21 +13,21 @@ export class LoginComponent {
   password: string = '';
   errorMessage: string = '';
 
-  constructor(private router: Router, private http: HttpClient) { }
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) { }
 
   async onSubmit() {
-    // Clear any previous error message
-    this.errorMessage = '';
-
-    const credentials = {
-      email: this.email,
-      password: this.password
-    };
+    this.errorMessage = ''; // Clear any previous error messages
 
     try {
-      const res: any = await this.http.post('http://localhost:3000/login', credentials).toPromise();
+      const res = await this.authService.login(this.email, this.password).toPromise();
+      if (!res) {
+        throw new Error('Invalid login');
+      }
 
-      // Navigate to details page
+      // Navigate to the details page
       this.router.navigate(['/details'], {
         state: {
           username: res.username,
@@ -39,5 +39,6 @@ export class LoginComponent {
     }
   }
 }
+
 
 
