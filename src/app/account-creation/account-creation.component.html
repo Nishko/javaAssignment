@@ -14,5 +14,6 @@
             <input id="password" type="password" [(ngModel)]="password" name="password" class="input-field">
         </div>
         <button type="submit" class="submit-button">Create Account</button>
+        <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
     </form>
 </div>

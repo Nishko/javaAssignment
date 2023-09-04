@@ -1,3 +1,21 @@
-<app-account-creation></app-account-creation>
+<!-- Header Section -->
+<div class="header">
+  <h1>Chat App</h1>
+</div>
 
-<router-outlet></router-outlet>
+<!-- Navigation -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    Navigation
+  </div>
+  <ul class="navbar-links">
+    <li><a routerLink="/create-account" class="nav-link">Create Account</a></li>
+    <li><a routerLink="/details" class="nav-link">Details</a></li>
+    <li><a routerLink="/login" class="nav-link">Login</a></li> <!-- Added login link here -->
+  </ul>
+</nav>
+
+<!-- Main Content -->
+<div class="container">
+  <router-outlet></router-outlet>
+</div>

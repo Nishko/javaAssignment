@@ -6,11 +6,15 @@ import { FormsModule } from '@angular/forms';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { AccountCreationComponent } from './account-creation/account-creation.component';
+import { DetailsComponent } from './details/details.component';
+import { LoginComponent } from './login/login.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    AccountCreationComponent
+    AccountCreationComponent,
+    DetailsComponent,
+    LoginComponent
   ],
   imports: [
     BrowserModule,
