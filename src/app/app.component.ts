@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { AuthService } from './auth.service';
 
 @Component({
@@ -6,18 +6,29 @@ import { AuthService } from './auth.service';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
 
+  isLoggedIn: boolean = false;
 
   constructor(private authService: AuthService) {
-    console.log('AppComponenet initialized.');
+    console.log('AppComponent initialized.');
   }
 
-  // Create a getter to retrieve the logged-in username
+  ngOnInit(): void {
+    this.isLoggedIn = this.authService.isAuthenticated(); // Use a method to check if the user is logged in
+  }
+
+  onLogoutClick(): void {
+    this.authService.logout();
+    this.isLoggedIn = false; // Update the login status after logout
+  }
+
   get loggedInUsername(): string {
-    const username = this.authService.getUsername();
-    console.log('Username in AppComponent:', username); // Log here
+    const username = this.authService.getLoggedInUsername();
+    console.log('Username in AppComponent:', username);
     return username;
   }
 }
+
+
 

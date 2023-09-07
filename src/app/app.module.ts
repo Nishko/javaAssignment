@@ -8,13 +8,15 @@ import { AppComponent } from './app.component';
 import { AccountCreationComponent } from './account-creation/account-creation.component';
 import { DetailsComponent } from './details/details.component';
 import { LoginComponent } from './login/login.component';
+import { ActiveChatGroupsComponent } from './active-chat-groups/active-chat-groups.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     AccountCreationComponent,
     DetailsComponent,
-    LoginComponent
+    LoginComponent,
+    ActiveChatGroupsComponent
   ],
   imports: [
     BrowserModule,

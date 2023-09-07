@@ -45,6 +45,20 @@
     color: black;
 }
 
+.navbar-links li button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+/* Hover state for Logout Button */
+.navbar-links li button:hover {
+    background-color: #c82333;
+}
+
 /* Main content */
 .container {
     padding: 20px;

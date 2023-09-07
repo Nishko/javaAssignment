@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -19,6 +20,7 @@ export class LoginComponent {
   ) { }
 
   async onSubmit() {
+    console.log(`Form submitted with email: ${this.email} and password: ${this.password}`); // Debug log
     this.errorMessage = ''; // Clear any previous error messages
 
     try {
@@ -34,7 +36,13 @@ export class LoginComponent {
           email: res.email
         }
       });
-    } catch (error) {
+    } catch (error: unknown) {
+      console.error("Error details:", error);
+
+      if (error instanceof HttpErrorResponse) {
+        console.error("Server returned code: ", error.status, ", body was: ", error.error);
+      }
+
       this.errorMessage = 'Invalid email or password';
     }
   }

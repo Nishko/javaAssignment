@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { AccountDataService } from '../account-data.service'; // Import the service
+import { AuthService } from '../auth.service';
 
 @Component({
   selector: 'app-details',
@@ -11,17 +11,18 @@ export class DetailsComponent implements OnInit {
   username: string = '';
   email: string = '';
 
-  // Inject the service in the constructor
-  constructor(private accountDataService: AccountDataService) { }
+  constructor(private authService: AuthService) { }
 
   ngOnInit(): void {
     console.log("Details component initialized.");
 
-    // Subscribe to username and email changes from the service
-    this.accountDataService.currentUsername.subscribe(username => this.username = username);
-    this.accountDataService.currentEmail.subscribe(email => this.email = email);
+    // Use the getter methods to retrieve the values
+    this.username = this.authService.getLoggedInUsername();
+    this.email = this.authService.getLoggedInEmail();
   }
 }
+
+
 
 
 
