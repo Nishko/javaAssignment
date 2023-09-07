@@ -13,8 +13,8 @@
     <li><a routerLink="/active-chat-groups">View Active Chat Groups</a></li>
     <li><a routerLink="/create-account" class="nav-link">Create Account</a></li>
     <li><a routerLink="/details" class="nav-link">Details</a></li>
-    <li><button *ngIf="!isLoggedIn" (click)="onLogoutClick()">Log In</button></li>
-    <li><button *ngIf="isLoggedIn" (click)="onLogoutClick()">Log Out</button></li>
+    <li *ngIf="!isLoggedIn"><a routerLink="/login" class="nav-link">Login</a></li>
+    <li *ngIf="isLoggedIn"><button (click)="onLogoutClick()" class="nav-link">Log Out</button></li>
   </ul>
 </nav>
 
