@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../auth.service';
+import { GroupService } from '../group.service';
 
 interface GroupResponse {
   message: string;
@@ -17,35 +18,49 @@ export class ActiveChatGroupsComponent implements OnInit {
   showCreateGroupForm: boolean = false;
   groupName: string = '';
   activeGroups: any[] = [];
+  groupData: any;
 
-  constructor(private http: HttpClient, private authService: AuthService) {
-    // Debugging line to check roles when component is constructed
+  constructor(private http: HttpClient,
+    private authService: AuthService,
+    private groupService: GroupService) {
     console.log('Roles in AuthService at construction:', authService.getRoles());
+  }
+
+  createGroup() {
+    this.groupData = { name: this.groupName, createdBy: this.authService.getUserId() };
+
+    this.groupService.createGroup(this.groupName).subscribe(
+      (response: GroupResponse) => {
+        console.log('Group created successfully', response);
+        // Re-fetch groups after creating
+        this.fetchActiveGroups();
+      },
+      error => {
+        console.log('An error occurred', error);
+      }
+    );
+  }
+
+  fetchActiveGroups() {
+    this.groupService.getActiveGroups().subscribe(
+      (groups: any) => {
+        console.log('Fetched active groups:', groups);
+        this.activeGroups = groups as any[];
+      },
+      error => {
+        console.error('Failed to fetch active groups:', error);
+      }
+    );
   }
 
   ngOnInit(): void {
     this.isSuperAdmin = this.authService.getRoles().includes('Super Admin');
-    // Debugging line to check if user is a 'Super Admin'
     console.log('Is Super Admin:', this.isSuperAdmin);
-
-    // Initialize activeGroups from the server
-    // Fetch the active groups from your API and populate activeGroups
-  }
-
-  createGroup(): void {
-    const createdBy = this.authService.getUserId();
-    this.http.post<GroupResponse>('/api/create-group', { name: this.groupName, createdBy })
-      .subscribe(
-        response => {
-          this.activeGroups.push({ id: response.groupId, name: this.groupName });
-          this.showCreateGroupForm = false;
-        },
-        (error: HttpErrorResponse) => {
-          console.error('Group creation failed:', error);
-        }
-      );
+    this.fetchActiveGroups();
   }
 }
+
+
 
 
 

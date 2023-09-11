@@ -24,8 +24,8 @@ db.run('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, 
     }
 });
 
-// Initialize groups table
-db.run('CREATE TABLE IF NOT EXISTS groups (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, created_at TEXT, created_by INTEGER)', (err) => {
+// Initialize groups table (with channels and roles columns)
+db.run('CREATE TABLE IF NOT EXISTS groups (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, channels TEXT, created_at TEXT, created_by INTEGER, roles TEXT)', (err) => {
     if (err) {
         console.error(err.message);
     }
@@ -68,6 +68,97 @@ const createSuperAdmin = async () => {
 };
 
 createSuperAdmin();
+
+const populateSampleGroups = () => {
+    db.get('SELECT COUNT(*) as count FROM groups', (err, row) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+
+        if (row.count === 0) {
+            const sampleGroups = [
+                { name: 'Group1', created_at: new Date().toISOString(), created_by: 1, channels: 'Channel 1,Channel 2', roles: 'Super Admin,Group Admin,User' },
+                { name: 'Group2', created_at: new Date().toISOString(), created_by: 1, channels: 'Channel 1,Channel 2,Channel 3', roles: 'Super Admin,Group Admin,User' },
+                { name: 'Group3', created_at: new Date().toISOString(), created_by: 1, channels: 'Channel 1,Channel 2', roles: 'Super Admin,Group Admin,User' },
+                { name: 'Group4', created_at: new Date().toISOString(), created_by: 2, channels: 'Channel 1,Channel 2', roles: 'Super Admin,Group Admin,User' },
+            ];
+
+            const sql = 'INSERT INTO groups (name, created_at, created_by, channels, roles) VALUES (?, ?, ?, ?, ?)';
+
+            sampleGroups.forEach(group => {
+                db.run(sql, [group.name, group.created_at, group.created_by, group.channels, group.roles], (err) => {
+                    if (err) {
+                        console.error(err.message);
+                    } else {
+                        console.log(`Sample group '${group.name}' added`);
+                    }
+                });
+            });
+        }
+    });
+};
+
+populateSampleGroups();
+
+// Long Polling Logic
+let events = [];
+let clients = [];
+
+app.get('/subscribe', async (req, res, next) => {
+    const { lastEventId } = req.query;
+    const id = Number(lastEventId);
+
+    if (id && events[id]) {
+        return res.json(events[id]);
+    }
+
+    const removeClient = (client) => {
+        const index = clients.indexOf(client);
+        if (index !== -1) {
+            clients.splice(index, 1);
+        }
+    };
+
+    const client = { id, res };
+    clients.push(client);
+
+    req.on('close', () => {
+        removeClient(client);
+    });
+});
+
+app.post('/publish', (req, res) => {
+    const { message } = req.body;
+
+    if (!message) {
+        return res.status(400).send('No message');
+    }
+
+    const id = events.push({ id: events.length, message }) - 1;
+
+    clients.forEach((client) => {
+        if (!client.id || client.id < id) {
+            client.res.json(events[id]);
+            client.res = null;
+        }
+    });
+
+    clients = clients.filter(client => client.res);
+
+    res.status(200).send('Message published');
+});
+
+app.get('/get-groups', (req, res) => {
+    const sql = 'SELECT * FROM groups';
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: 'Error querying the database' });
+        }
+        res.status(200).json(rows);
+    });
+});
 
 // Endpoint for account creation
 app.post('/create-account', async (req, res) => {
@@ -132,8 +223,6 @@ app.post('/login', (req, res) => {
             return;
         }
 
-        // Assume that row.roles contains roles for the user, which can be a string like 'Super Admin, User'
-        // and that row.id contains the user's unique ID.
         const roles = row.roles ? row.roles.split(',') : [];  // Convert comma-separated roles into an array
         const userId = row.id;
 
