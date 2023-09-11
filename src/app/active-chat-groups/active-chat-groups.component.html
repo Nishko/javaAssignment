@@ -1,7 +1,6 @@
 <!-- Only shown if the role is 'Super Admin' -->
 <div *ngIf="isSuperAdmin">
     <button (click)="showCreateGroupForm = !showCreateGroupForm">Create Group</button>
-
     <div *ngIf="showCreateGroupForm">
         <form (submit)="createGroup()">
             <label for="groupName">Group Name:</label>
@@ -11,7 +10,14 @@
     </div>
 </div>
 
-<!-- List of active groups -->
-<ul>
-    <li *ngFor="let group of activeGroups">{{ group.name }}</li>
-</ul>
+<!-- Conditionally showing list based on login status -->
+<div *ngIf="isLoggedIn()">
+    <ul>
+        <li *ngFor="let group of activeGroups">
+            <button routerLink="/channel/{{group.id}}">{{ group.name }}</button>
+        </li>
+    </ul>
+</div>
+<div *ngIf="!isLoggedIn()">
+    <p>Please login or create an account to view active chat groups.</p>
+</div>

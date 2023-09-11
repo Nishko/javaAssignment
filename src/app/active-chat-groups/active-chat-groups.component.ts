@@ -20,10 +20,17 @@ export class ActiveChatGroupsComponent implements OnInit {
   activeGroups: any[] = [];
   groupData: any;
 
-  constructor(private http: HttpClient,
+  constructor(
+    private http: HttpClient,
     private authService: AuthService,
-    private groupService: GroupService) {
+    private groupService: GroupService
+  ) {
     console.log('Roles in AuthService at construction:', authService.getRoles());
+  }
+
+  // Function to check if a user is logged in
+  isLoggedIn(): boolean {
+    return this.authService.isAuthenticated();
   }
 
   createGroup() {
@@ -32,8 +39,7 @@ export class ActiveChatGroupsComponent implements OnInit {
     this.groupService.createGroup(this.groupName).subscribe(
       (response: GroupResponse) => {
         console.log('Group created successfully', response);
-        // Re-fetch groups after creating
-        this.fetchActiveGroups();
+        this.fetchActiveGroups();  // Re-fetch groups after creating
       },
       error => {
         console.log('An error occurred', error);
@@ -59,6 +65,7 @@ export class ActiveChatGroupsComponent implements OnInit {
     this.fetchActiveGroups();
   }
 }
+
 
 
 

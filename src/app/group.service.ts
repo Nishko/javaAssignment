@@ -17,6 +17,12 @@ export class GroupService {
   getActiveGroups(): Observable<any> {
     return this.http.get('http://localhost:3000/get-groups');
   }
+
+  addChatter(channelId: string): Observable<any> {
+    const userId = this.authService.getUserId();
+    return this.http.post(`http://localhost:3000/add-chatter`, { channelId, userId });
+  }
+
 }
 
 

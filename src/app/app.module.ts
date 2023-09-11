@@ -10,6 +10,7 @@ import { DetailsComponent } from './details/details.component';
 import { LoginComponent } from './login/login.component';
 import { ActiveChatGroupsComponent } from './active-chat-groups/active-chat-groups.component';
 import { AdminComponent } from './admin/admin.component';
+import { ChannelComponent } from './channel/channel.component';
 
 @NgModule({
   declarations: [
@@ -18,7 +19,8 @@ import { AdminComponent } from './admin/admin.component';
     DetailsComponent,
     LoginComponent,
     ActiveChatGroupsComponent,
-    AdminComponent
+    AdminComponent,
+    ChannelComponent
   ],
   imports: [
     BrowserModule,
