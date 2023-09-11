@@ -9,6 +9,7 @@ import { AccountCreationComponent } from './account-creation/account-creation.co
 import { DetailsComponent } from './details/details.component';
 import { LoginComponent } from './login/login.component';
 import { ActiveChatGroupsComponent } from './active-chat-groups/active-chat-groups.component';
+import { AdminComponent } from './admin/admin.component';
 
 @NgModule({
   declarations: [
@@ -16,7 +17,8 @@ import { ActiveChatGroupsComponent } from './active-chat-groups/active-chat-grou
     AccountCreationComponent,
     DetailsComponent,
     LoginComponent,
-    ActiveChatGroupsComponent
+    ActiveChatGroupsComponent,
+    AdminComponent
   ],
   imports: [
     BrowserModule,
