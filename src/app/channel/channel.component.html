@@ -1,2 +1,14 @@
 <!-- Button to request admin status -->
 <button *ngIf="showAdminRequestButton" (click)="requestAdminStatus()">Request Group Admin Status</button>
+
+<!-- Create Sub-Channel Section -->
+<div *ngIf="canCreateSubChannel()">
+    <button (click)="toggleCreateSubChannelForm()">Create Sub-Channel</button>
+    <div *ngIf="showCreateSubChannelForm">
+        <form (submit)="createSubChannel()">
+            <label for="subChannelName">Sub-Channel Name:</label>
+            <input type="text" id="subChannelName" [(ngModel)]="subChannelName" name="subChannelName" required>
+            <button type="submit">Create</button>
+        </form>
+    </div>
+</div>

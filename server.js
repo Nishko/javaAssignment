@@ -38,6 +38,13 @@ db.run('CREATE TABLE IF NOT EXISTS group_members (group_id INTEGER, user_id INTE
     }
 });
 
+// Initialize channel_members table
+db.run('CREATE TABLE IF NOT EXISTS channel_members (channel_id INTEGER, user_id INTEGER, joined_at TEXT, FOREIGN KEY(channel_id) REFERENCES channels(id), FOREIGN KEY(user_id) REFERENCES users(id))', (err) => {
+    if (err) {
+        console.error(err.message);
+    }
+});
+
 // Initialize admin_requests table
 db.run('CREATE TABLE IF NOT EXISTS admin_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, channel_id INTEGER, status TEXT)', (err) => {
     if (err) {
@@ -218,6 +225,20 @@ app.post('/create-group', (req, res) => {
     });
 });
 
+app.post('/add-channel-member', (req, res) => {
+    const { channelId, userId } = req.body;
+    const joinedAt = new Date().toISOString();
+
+    const sql = `INSERT INTO channel_members (channel_id, user_id, joined_at) VALUES (?, ?, ?)`;
+    db.run(sql, [channelId, userId, joinedAt], (err) => {
+        if (err) {
+            return res.status(400).json({ error: err.message });
+        }
+        return res.status(201).json({ message: "Successfully added member to channel" });
+    });
+});
+
+
 // Endpoint for requesting admin permissions
 app.post('/request-group-admin', (req, res) => {
     const userId = req.body.userId;
@@ -264,6 +285,22 @@ app.get('/get-admin-requests', (req, res) => {
         }
 
         res.json({ adminRequests: rows });
+    });
+});
+
+// Endpoint for creating sub-channels
+app.post('/api/subchannel/create', (req, res) => {
+    const { name, channelId, createdBy } = req.body;
+    const createdAt = new Date().toISOString();
+
+    const sql = 'INSERT INTO subchannels (name, channel_id, created_at, created_by) VALUES (?, ?, ?, ?)';
+    const params = [name, channelId, createdAt, createdBy];
+
+    db.run(sql, params, function (err) {
+        if (err) {
+            return res.status(500).json({ message: 'Error inserting data' });
+        }
+        res.status(200).json({ message: 'Sub-channel created successfully!', subchannelId: this.lastID });
     });
 });
 
