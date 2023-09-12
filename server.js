@@ -322,9 +322,20 @@ app.get('/channel/:id', (req, res) => {
     });
 });
 
+app.delete('/api/user/:userId', (req, res) => {
+    const userId = req.params.userId;
 
-
-
+    db.run(`DELETE FROM users WHERE id = ?`, userId, function (err) {
+        if (err) {
+            return res.status(400).json({ error: err.message });
+        }
+        if (this.changes === 0) {
+            return res.status(404).json({ error: "User not found" });
+        } else {
+            return res.status(200).json({ message: 'Successfully deleted user' });
+        }
+    });
+});
 
 // Endpoint for login
 app.post('/login', (req, res) => {
