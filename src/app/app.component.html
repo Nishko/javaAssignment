@@ -10,6 +10,7 @@
   </div>
   <ul class="navbar-links">
     <!--<li>Welcome, {{ loggedInUsername }}</li> -->
+    <li *ngIf="isAdmin()"><a routerLink="/admin" class="nav-link">Admin Page</a></li>
     <li><a routerLink="/active-chat-groups">View Active Chat Groups</a></li>
     <li><a routerLink="/create-account" class="nav-link">Create Account</a></li>
     <li><a routerLink="/details" class="nav-link">Details</a></li>

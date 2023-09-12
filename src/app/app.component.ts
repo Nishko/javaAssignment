@@ -35,6 +35,10 @@ export class AppComponent implements OnInit, OnDestroy {
   get loggedInUsername(): string {
     return this.authService.getLoggedInUsername();
   }
+
+  isAdmin(): boolean {
+    return this.authService.getRoles().includes('Super Admin');
+  }
 }
 
 

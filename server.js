@@ -38,6 +38,20 @@ db.run('CREATE TABLE IF NOT EXISTS group_members (group_id INTEGER, user_id INTE
     }
 });
 
+// Initialize admin_requests table
+db.run('CREATE TABLE IF NOT EXISTS admin_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, channel_id INTEGER, status TEXT)', (err) => {
+    if (err) {
+        console.error(err.message);
+    }
+});
+
+// Initialize channels table
+db.run('CREATE TABLE IF NOT EXISTS channels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, group_id INTEGER, FOREIGN KEY(group_id) REFERENCES groups(id))', (err) => {
+    if (err) {
+        console.error(err.message);
+    }
+});
+
 // Create a Super Admin if not exists
 const createSuperAdmin = async () => {
     const superAdminEmail = "super@admin.com";
@@ -204,6 +218,114 @@ app.post('/create-group', (req, res) => {
     });
 });
 
+// Endpoint for requesting admin permissions
+app.post('/request-group-admin', (req, res) => {
+    const userId = req.body.userId;
+    const channelId = req.body.channelId;
+
+    if (!userId || !channelId) {
+        return res.status(400).json({ message: 'userId and channelId are required.' });
+    }
+
+    // Check if request already exists
+    const checkSql = 'SELECT * FROM admin_requests WHERE user_id = ? AND channel_id = ?';
+    db.get(checkSql, [userId, channelId], (err, row) => {
+        if (err) {
+            console.error(err.message);  // Log the error message to the console
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+
+        if (row) {
+            return res.status(400).json({ message: 'Request already exists' });
+        }
+
+        // Insert new request into the admin_requests table
+        const insertSql = 'INSERT INTO admin_requests (user_id, channel_id, status) VALUES (?, ?, ?)';
+        db.run(insertSql, [userId, channelId, 'pending'], function (err) {
+            if (err) {
+                console.error(err.message);  // Log the error message to the console
+                return res.status(500).json({ message: 'Internal Server Error' });
+            }
+
+            res.json({ message: 'Admin request received', requestId: this.lastID });
+        });
+    });
+});
+
+// Endpoint for fetching all admin requests
+app.get('/get-admin-requests', (req, res) => {
+    console.log('Received a GET request for /get-admin-requests');
+    const sql = 'SELECT * FROM admin_requests';
+
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+
+        res.json({ adminRequests: rows });
+    });
+});
+
+// Endpoint for fetching user by ID
+app.get('/user/:id', (req, res) => {
+    console.log('Received a GET request for /user/:id');
+    const userId = req.params.id;
+
+    // SQL Query to get user by ID
+    const sql = 'SELECT * FROM users WHERE id = ?';
+
+    db.get(sql, [userId], (err, row) => {
+        console.log("Query Result:", row);
+        if (err) {
+            console.error(err.message);
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+
+        if (row) {
+            console.log("User found:", row);
+            res.json({ user: row });
+        } else {
+            console.log("User not found");
+            res.status(404).json({ message: 'User not found' });
+        }
+    });
+});
+
+// Endpoint for fetching channel by ID
+app.get('/channel/:id', (req, res) => {
+    console.log(`Received a GET request for /channel/${req.params.id}`);
+
+    const channelId = req.params.id;
+    console.log(`Channel ID: ${channelId}`);
+
+    const sql = 'SELECT * FROM channels WHERE id = ?';
+    console.log(`Executing SQL query: ${sql} with ID: ${channelId}`);
+
+    console.log("DB configuration:", JSON.stringify(db, null, 2));
+
+    db.get(sql, [channelId], (err, row) => {
+        if (err) {
+            console.error("SQL Error:", err);
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+
+        console.log("Query Result:", row);
+
+        if (row) {
+            console.log("Query Result:", row);
+            res.status(200).json({ channel: row });
+        } else {
+            console.log("Channel not found");
+            res.status(404).json({ message: 'Channel not found' });
+        }
+    });
+});
+
+
+
+
+
 // Endpoint for login
 app.post('/login', (req, res) => {
     const { email, password } = req.body;
@@ -211,7 +333,7 @@ app.post('/login', (req, res) => {
 
     db.get('SELECT * FROM users WHERE email = ?', [email], async (err, row) => {
         if (err) {
-            console.error(err);  // Log the error for debugging
+            console.error(err);  // error for debugging
             res.status(500).send('Error while retrieving data');
             return;
         }

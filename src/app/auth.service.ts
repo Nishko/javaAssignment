@@ -46,6 +46,10 @@ export class AuthService {
     );
   }
 
+  getAdminRequests(): Observable<any> {
+    return this.http.get('/api/get-admin-requests');
+  }
+
   isAuthenticated(): boolean {
     return this.loggedInUsername !== '';
   }
