@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { GroupService } from '../group.service';
 import { AuthService } from '../auth.service';
+import { ChangeDetectorRef } from '@angular/core';
 import { Observable } from 'rxjs';
 
 @Component({
@@ -13,8 +14,10 @@ export class ChannelComponent implements OnInit {
   showAdminRequestButton: boolean = false;
   showCreateSubChannelForm: boolean = false;  // Toggle form visibility
   subChannelName: string = '';  // Bind to form input
+  subChannels: any[] = [];  // List to keep track of sub-channels
 
   constructor(
+    private cdr: ChangeDetectorRef,
     private route: ActivatedRoute,
     private groupService: GroupService,
     private authService: AuthService
@@ -23,10 +26,9 @@ export class ChannelComponent implements OnInit {
   ngOnInit(): void {
     const channelId = this.route.snapshot.params['id'];
     const userId = this.authService.getUserId();
-
     const userIdStr = userId.toString();
 
-    console.log(`Adding chatter for channel: ${channelId}`); // Debugging
+    console.log(`Adding chatter for channel: ${channelId} `); // Debugging
 
     this.groupService.addChannelMember(channelId, userIdStr).subscribe(
       response => {
@@ -39,8 +41,21 @@ export class ChannelComponent implements OnInit {
     );
 
     this.showAdminRequestButton = true;  // Show admin request button
+
+    this.fetchSubChannels(channelId);  // Fetch sub-channels from backend
   }
 
+  fetchSubChannels(channelId: string): void {
+    this.groupService.getSubChannels(channelId).subscribe(
+      (data: any) => {
+        this.subChannels = data.data;
+        console.log("Has sub channels: ", this.hasSubChannels);
+      },
+      (error: any) => {
+        console.error('Failed to fetch sub-channels:', error);
+      }
+    );
+  }
 
   requestAdminStatus(): void {
     const channelId = this.route.snapshot.params['id'];
@@ -62,12 +77,13 @@ export class ChannelComponent implements OnInit {
   createSubChannel(): void {
     const channelId = this.route.snapshot.params['id'];
 
-    console.log(`Preparing to create sub-channel for channel: ${channelId}`);
+    console.log(`Preparing to create sub - channel for channel: ${channelId} `);
 
     this.groupService.createSubChannel(channelId, this.subChannelName)
       .subscribe(
         (response) => {
           console.log('Successfully created sub-channel:', response);
+          this.fetchSubChannels(channelId);  // Refresh the list of sub-channels
           this.showCreateSubChannelForm = false;
           this.subChannelName = '';
         },
@@ -76,6 +92,10 @@ export class ChannelComponent implements OnInit {
           console.error(error);
         }
       );
+  }
+
+  get hasSubChannels(): boolean {
+    return this.subChannels && this.subChannels.length > 0;
   }
 
   isSuperAdmin(): boolean {

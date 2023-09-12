@@ -38,15 +38,28 @@ export class GroupService {
 
   createSubChannel(channelId: string, subChannelName: string): Observable<any> {
     const url = `http://localhost:3000/api/subchannel/create`;
+    const createdBy = this.authService.getUserId();  // Fetch the userId from AuthService
     const payload = {
-      parentChannelId: channelId,
-      name: subChannelName
+      name: subChannelName,
+      channelId: channelId,
+      createdBy: createdBy  // Use the fetched userId here
     };
 
     return this.http.post(url, payload).pipe(
       tap(response => console.log('Sub-channel created:', response)),
       catchError(error => {
         console.error('Failed to create sub-channel:', error);
+        return throwError(error);
+      })
+    );
+  }
+
+  getSubChannels(channelId: string): Observable<any> {
+    const url = `http://localhost:3000/api/subchannels/${channelId}`;
+    return this.http.get<any>(url).pipe(
+      tap(response => console.log('Fetched sub-channels:', response)),
+      catchError(error => {
+        console.error('Failed to fetch sub-channels:', error);
         return throwError(error);
       })
     );

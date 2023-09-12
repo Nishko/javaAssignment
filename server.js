@@ -59,6 +59,15 @@ db.run('CREATE TABLE IF NOT EXISTS channels (id INTEGER PRIMARY KEY AUTOINCREMEN
     }
 });
 
+// Initialize subchannels table
+db.run('CREATE TABLE IF NOT EXISTS subchannels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, channel_id INTEGER, created_at TEXT, created_by INTEGER, FOREIGN KEY(channel_id) REFERENCES channels(id))', (err) => {
+    if (err) {
+        console.error(err.message);
+    } else {
+        console.log('subchannels table created or already exists');
+    }
+});
+
 // Create a Super Admin if not exists
 const createSuperAdmin = async () => {
     const superAdminEmail = "super@admin.com";
@@ -298,11 +307,30 @@ app.post('/api/subchannel/create', (req, res) => {
 
     db.run(sql, params, function (err) {
         if (err) {
+            console.error("Database error:", err);
             return res.status(500).json({ message: 'Error inserting data' });
         }
+        console.log(`Sub-channel created with ID: ${this.lastID}`);
         res.status(200).json({ message: 'Sub-channel created successfully!', subchannelId: this.lastID });
     });
 });
+
+// Endpoint for fetching sub-channels by channel ID
+app.get('/api/subchannels/:channelId', (req, res) => {
+    const sql = "SELECT * FROM subchannels WHERE channel_id = ?";
+    const params = [req.params.channelId];
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            res.status(400).json({ "error": err.message });
+            return;
+        }
+        res.json({
+            "message": "success",
+            "data": rows
+        });
+    });
+});
+
 
 // Endpoint for fetching user by ID
 app.get('/user/:id', (req, res) => {
