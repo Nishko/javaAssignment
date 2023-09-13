@@ -29,10 +29,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const subChannelId = this.route.snapshot.params['id'];
-    const savedMessages = localStorage.getItem(`messages_${subChannelId}`);
-    if (savedMessages) {
-      this.messages = JSON.parse(savedMessages);
-    }
+    this.loadMessagesFromLocalStorage(subChannelId);
     this.loadCurrentUsername();
 
     this.authService.getAuthStatus()
@@ -40,6 +37,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
       .subscribe(isAuthenticated => {
         if (isAuthenticated) {
           this.loadMessages(subChannelId);
+          this.loadMessagesFromLocalStorage(subChannelId);
         }
       });
   }
@@ -54,6 +52,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     this.groupService.getUserNameById(userId).subscribe(
       username => {
         this.currentUsername = username;
+        console.log('Current username:', this.currentUsername); // Debugging line
       },
       error => {
         console.error('Failed to fetch username:', error);
@@ -62,18 +61,30 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     );
   }
 
+  loadMessagesFromLocalStorage(subChannelId: string): void {
+    const savedMessages = localStorage.getItem(`messages_${subChannelId}`);
+    if (savedMessages) {
+      this.messages = JSON.parse(savedMessages);
+      console.log('Loaded messages from localStorage:', this.messages); // Debugging line
+    }
+  }
+
   loadMessages(subChannelId: string): void {
     this.groupService.getMessagesForSubChannel(subChannelId).subscribe(
       (data: ChatMessage[]) => {
         const uniqueUserIds = Array.from(new Set(data.map(message => message.userId))).filter(Boolean) as number[];
+        console.log('Unique User IDs:', uniqueUserIds);  // Debugging line
 
         forkJoin(
           uniqueUserIds.map(userId => this.groupService.getUserNameById(userId))
         ).subscribe(
           usernames => {
+            console.log('Usernames:', usernames);  // Debugging line
             const userMap = Object.fromEntries(
               uniqueUserIds.map((userId, index) => [userId, usernames[index]])
             );
+
+            console.log('User Map:', userMap);  // Debugging line
 
             this.messages = data.map(message => ({
               ...message,
@@ -81,8 +92,6 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
             }));
 
             this.messages = [...this.messages];
-
-            // Storing messages to localStorage
             localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
           },
           error => {
@@ -114,10 +123,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     this.groupService.sendMessageToSubChannel(subChannelId, newChatMessage).subscribe(
       () => {
         this.messages.push({ ...newChatMessage, sender: this.currentUsername || 'Unknown' });
-
         this.messages = [...this.messages];
-
-        // Storing messages to localStorage
         localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
         this.newMessage = '';
       },

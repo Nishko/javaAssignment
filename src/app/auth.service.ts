@@ -36,8 +36,11 @@ export class AuthService {
     this.userId = 0;
     this.authStatus.next(false);
 
-    // Clear localStorage
-    localStorage.clear();
+    // Remove specific keys from localStorage
+    localStorage.removeItem('username');
+    localStorage.removeItem('email');
+    localStorage.removeItem('roles');
+    localStorage.removeItem('userId');
 
     this.router.navigate(['/login']);
   }
