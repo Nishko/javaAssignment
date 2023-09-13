@@ -1,27 +1,60 @@
-# JavaAssignment
+# JavaAssignment: An Angular-based Chat Application
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 16.2.1.
+This is a chat application built with Angular, featuring user authentication, group chats, and admin features.
 
-## Development server
+## Table of Contents
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+1. [Project Organization](#project-organization)
+2. [Data Structures](#data-structures)
+3. [Angular Architecture](#angular-architecture)
+4. [Server-Side Routes](#server-side-routes)
+5. [User Interactions](#user-interactions)
+6. [Development Setup](#development-setup)
+7. [Additional Commands](#additional-commands)
 
-## Code scaffolding
+## Project Organization
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+This project is managed with Git and features two main branches: `main` and a secondary experimental branch. The `main` branch is for stable, well-tested features, while the secondary branch is used for more experimental development.
 
-## Build
+Commits are made when substantial progress is achieved or when the code is in a stable state for the day.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+## Data Structures
 
-## Running unit tests
+The backend relies on a SQLite database (`mydatabase.db`) for persisting information like users, groups, channels, messages, and roles. Additionally, local storage is used to tackle some persistence challenges.
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## Angular Architecture
 
-## Running end-to-end tests
+The frontend is structured around multiple Angular components, each serving distinct functionalities. Helper TypeScript files, such as `auth.service.ts` and `group.service.ts`, are created to handle specific tasks like authentication and group management.
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+## Server-Side Routes
 
-## Further help
+- `GET /get-groups`: Fetches groups to display on the active chat page.
+- `POST /create-account`: For account creation.
+- `POST /create-group`: Allows admins to create new chat groups.
+- `POST /add-channel-member`: Adds a user to a channel group.
+- `POST /request-group-admin`: To request admin status for a group.
+- `GET /get-admin-requests`: Fetches all admin status requests for Super Admin review.
+- `POST /api/subchannel/create`: For creating subchannels.
+- `DELETE /subchannels/:id`: To delete subchannels (Admin only).
+- ... (Continue with remaining routes)
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+## User Interactions
+
+Depending on the user's role, different UI elements are visible. For instance:
+
+- Super Admins have special tabs to approve/deny admin requests.
+- Authenticated users see the active chat channels, whereas guests do not.
+- Various controls are role-specific (Admin-only, Guest-only, etc.).
+
+## Development Setup
+
+This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 16.2.1. Run `ng serve` and navigate to `http://localhost:4200/` for local development.
+
+## Additional Commands
+
+- **Generate Component**: `ng generate component component-name`
+- **Build**: `ng build`
+- **Unit Tests**: `ng test`
+- **End-to-End Tests**: `ng e2e`
+
+For further help with Angular CLI, see the [Angular CLI Overview and Command Reference](https://angular.io/cli).
