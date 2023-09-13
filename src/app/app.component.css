@@ -1,0 +1,65 @@
+/* Header */
+.header {
+    background-color: #212529;
+    color: white;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Navbar */
+.navbar {
+    background-color: #343a40;
+    overflow: hidden;
+}
+
+.navbar-brand {
+    float: left;
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 20px;
+    font-size: 18px;
+}
+
+/* Navbar links */
+.navbar-links {
+    list-style: none;
+    float: right;
+}
+
+.navbar-links li {
+    float: left;
+}
+
+.navbar-links li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 20px;
+    text-decoration: none;
+}
+
+/* Hover state */
+.navbar-links li a:hover {
+    background-color: #ddd;
+    color: black;
+}
+
+.navbar-links li button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+/* Hover state for Logout Button */
+.navbar-links li button:hover {
+    background-color: #c82333;
+}
+
+/* Main content */
+.container {
+    padding: 20px;
+}

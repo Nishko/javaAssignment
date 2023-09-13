@@ -1,0 +1,23 @@
+<!-- Only shown if the role is 'Super Admin' -->
+<div *ngIf="isSuperAdmin">
+    <button (click)="showCreateGroupForm = !showCreateGroupForm">Create Group</button>
+    <div *ngIf="showCreateGroupForm">
+        <form (submit)="createGroup()">
+            <label for="groupName">Group Name:</label>
+            <input type="text" id="groupName" [(ngModel)]="groupName" name="groupName" required>
+            <button type="submit">Create</button>
+        </form>
+    </div>
+</div>
+
+<!-- Conditionally showing list based on login status -->
+<div *ngIf="isLoggedIn()">
+    <ul>
+        <li *ngFor="let group of activeGroups">
+            <button routerLink="/channel/{{group.id}}">{{ group.name }}</button>
+        </li>
+    </ul>
+</div>
+<div *ngIf="!isLoggedIn()">
+    <p>Please login or create an account to view active chat groups.</p>
+</div>

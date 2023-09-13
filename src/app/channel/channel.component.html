@@ -1,0 +1,34 @@
+<!-- Button to request admin status -->
+<button *ngIf="showAdminRequestButton" (click)="requestAdminStatus()">Request Group Admin Status</button>
+
+<!-- Create Sub-Channel Section -->
+<div *ngIf="canCreateSubChannel()">
+    <button (click)="toggleCreateSubChannelForm()">Create Sub-Channel</button>
+    <div *ngIf="showCreateSubChannelForm">
+        <form (submit)="createSubChannel()">
+            <label for="subChannelName">Sub-Channel Name:</label>
+            <input type="text" id="subChannelName" [(ngModel)]="subChannelName" name="subChannelName" required>
+            <button type="submit">Create</button>
+        </form>
+    </div>
+</div>
+
+<!-- List of Sub-Channels -->
+<div *ngIf="hasSubChannels">
+    <h3>Sub-Channels:</h3>
+    <ul>
+        <li *ngFor="let subChannel of subChannels">
+            <a [routerLink]="['/sub-channel-chat', subChannel.id]">{{ subChannel.name }}</a>
+        </li>
+    </ul>
+</div>
+
+
+<!-- Loading or Empty state -->
+<div *ngIf="subChannels === null">
+    <p>Loading...</p>
+</div>
+
+<div *ngIf="subChannels?.length === 0">
+    <p>No Sub-Channels available.</p>
+</div>

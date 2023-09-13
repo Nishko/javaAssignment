@@ -1,0 +1,51 @@
+/* Button styling */
+button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    margin: 8px 0;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+/* Hover effect for buttons */
+button:hover {
+    background-color: #45a049;
+}
+
+/* Form layout */
+form {
+    display: flex;
+    flex-direction: column;
+    max-width: 300px;
+    margin-top: 10px;
+}
+
+label,
+input {
+    margin-bottom: 15px;
+}
+
+/* Input fields */
+input[type="text"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+}
+
+/* List of Sub-Channels */
+ul {
+    list-style-type: disc;
+    margin-left: 40px;
+}
+
+li {
+    margin-bottom: 10px;
+}
+
+/* Headings */
+h3 {
+    margin-top: 20px;
+}

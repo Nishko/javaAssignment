@@ -1,0 +1,25 @@
+<!-- Header Section -->
+<div class="header">
+  <h1>Chat App</h1>
+</div>
+
+<!-- Navigation -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    Navigation
+  </div>
+  <ul class="navbar-links">
+    <!--<li>Welcome, {{ loggedInUsername }}</li> -->
+    <li *ngIf="isAdmin()"><a routerLink="/admin" class="nav-link">Admin Page</a></li>
+    <li><a routerLink="/active-chat-groups">View Active Chat Groups</a></li>
+    <li><a routerLink="/create-account" class="nav-link">Create Account</a></li>
+    <li><a routerLink="/details" class="nav-link">Details</a></li>
+    <li *ngIf="!isLoggedIn"><a routerLink="/login" class="nav-link">Login</a></li>
+    <li *ngIf="isLoggedIn"><button (click)="onLogoutClick()" class="nav-link">Log Out</button></li>
+  </ul>
+</nav>
+
+<!-- Main Content -->
+<div class="container">
+  <router-outlet></router-outlet>
+</div>
