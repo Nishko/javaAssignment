@@ -11,6 +11,7 @@ import { LoginComponent } from './login/login.component';
 import { ActiveChatGroupsComponent } from './active-chat-groups/active-chat-groups.component';
 import { AdminComponent } from './admin/admin.component';
 import { ChannelComponent } from './channel/channel.component';
+import { SubChannelChatComponent } from './sub-channel-chat/sub-channel-chat.component';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,8 @@ import { ChannelComponent } from './channel/channel.component';
     LoginComponent,
     ActiveChatGroupsComponent,
     AdminComponent,
-    ChannelComponent
+    ChannelComponent,
+    SubChannelChatComponent
   ],
   imports: [
     BrowserModule,

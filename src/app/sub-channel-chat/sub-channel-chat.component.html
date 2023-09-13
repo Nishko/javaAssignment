@@ -1,0 +1,21 @@
+<div *ngFor="let errorMessage of errorMessages" class="alert alert-danger">
+    {{ errorMessage }}
+</div>
+
+<div *ngIf="messages.length === 0">
+    <p>No messages yet. Be the first to say something!</p>
+</div>
+
+<div *ngFor="let message of messages; let i = index">
+    <div>
+        <span class="message-info">
+            {{ message.sender || 'Unknown' }} | {{ message.timestamp || 'Unknown Time' }}
+        </span>
+        <span>: {{ message.text || 'No Content' }}</span>
+    </div>
+</div>
+
+<div class="message-input">
+    <input type="text" [(ngModel)]="newMessage" placeholder="Type your message here" />
+    <button (click)="sendMessage()" [disabled]="newMessage.trim() === ''">Send</button>
+</div>

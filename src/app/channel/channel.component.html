@@ -17,9 +17,12 @@
 <div *ngIf="hasSubChannels">
     <h3>Sub-Channels:</h3>
     <ul>
-        <li *ngFor="let subChannel of subChannels">{{ subChannel.name }}</li>
+        <li *ngFor="let subChannel of subChannels">
+            <a [routerLink]="['/sub-channel-chat', subChannel.id]">{{ subChannel.name }}</a>
+        </li>
     </ul>
 </div>
+
 
 <!-- Loading or Empty state -->
 <div *ngIf="subChannels === null">

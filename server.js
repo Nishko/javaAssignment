@@ -68,6 +68,13 @@ db.run('CREATE TABLE IF NOT EXISTS subchannels (id INTEGER PRIMARY KEY AUTOINCRE
     }
 });
 
+// Initialize messages table
+db.run('CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, channel_id INTEGER, text TEXT, timestamp TEXT, FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(channel_id) REFERENCES channels(id))', (err) => {
+    if (err) {
+        console.error(err.message);
+    }
+});
+
 // Create a Super Admin if not exists
 const createSuperAdmin = async () => {
     const superAdminEmail = "super@admin.com";
@@ -387,6 +394,52 @@ app.get('/channel/:id', (req, res) => {
     });
 });
 
+// Endpoint for sending messages
+app.post('/api/subChannels/:subChannelId/sendMessage', (req, res) => {
+    console.log('Request received for sending message');
+    const { userId, channelId, text } = req.body;
+    const timestamp = new Date().toISOString();
+
+    // Validate channelId and userId (assuming they should be integers)
+    if (!Number.isInteger(Number(channelId)) || !Number.isInteger(Number(userId))) {
+        return res.status(400).json({ message: 'Invalid channelId or userId' });
+    }
+
+    // Validate text
+    if (typeof text !== 'string' || text.length === 0) {
+        return res.status(400).json({ message: 'Invalid message text' });
+    }
+
+    const sql = 'INSERT INTO messages (user_id, channel_id, text, timestamp) VALUES (?, ?, ?, ?)';
+    const params = [userId, channelId, text, timestamp];
+
+    db.run(sql, params, function (err) {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: 'Error inserting message' });
+        }
+        res.status(200).json({ message: 'Message sent successfully!', messageId: this.lastID });
+    });
+});
+
+// Endpoint for fetching messages
+app.get('/api/subChannels/:subChannelId/messages', (req, res) => {
+    console.log('Request received for fetching messages');
+    const channelId = req.params.subChannelId;
+
+    const sql = 'SELECT * FROM messages WHERE channel_id = ?';
+    const params = [channelId];
+
+    db.all(sql, params, (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: 'Error fetching messages' });
+        }
+        res.status(200).json(rows);
+    });
+});
+
+// Endpoint for deleting account
 app.delete('/api/user/:userId', (req, res) => {
     const userId = req.params.userId;
 
