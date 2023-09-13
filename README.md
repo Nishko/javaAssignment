@@ -1,6 +1,9 @@
 # JavaAssignment: An Angular-based Chat Application
 
-This is a chat application built with Angular, featuring user authentication, group chats, and admin features.
+This is a chat application built with Angular, featuring user authentication, group chats, and admin features. 
+
+By Rowan Anderson
+s5092185
 
 ## Table of Contents
 
@@ -36,7 +39,14 @@ The frontend is structured around multiple Angular components, each serving dist
 - `GET /get-admin-requests`: Fetches all admin status requests for Super Admin review.
 - `POST /api/subchannel/create`: For creating subchannels.
 - `DELETE /subchannels/:id`: To delete subchannels (Admin only).
-- ... (Continue with remaining routes)
+- `GET /api/subchannels/:channelId`: Retrieves subchannels by their parent channel ID.
+- `GET /user/:id`: Retrieves user details by their ID.
+- `GET /channel/:id`: Retrieves channel details by their ID.
+- `POST /api/subChannels/:subChannelId/sendMessage`: Sends a message in a subchannel.
+- `GET /api/subChannels/:subChannelId/messages`: Retrieves messages from a subchannel.
+- `DELETE /api/user/:userId`: Deletes a user account.
+- `POST /login`: Handles user login.
+
 
 ## User Interactions
 
