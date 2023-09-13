@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { GroupService } from '../group.service';
 import { ChatMessage } from '../models/chat-message.model';
 import { AuthService } from '../auth.service';
@@ -22,7 +22,8 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private groupService: GroupService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) {
     this.loadCurrentUsername();
   }
@@ -46,6 +47,28 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
+
+  isAdminOrGroupAdmin(): boolean {
+    const roles = this.authService.getRoles();
+    return roles.includes('Super Admin') || roles.includes('Group Admin');
+  }
+
+  deleteSubChannel(): void {
+    if (window.confirm('Are you sure you want to delete this subchannel?')) {
+      const subChannelId = this.route.snapshot.params['id'];
+      console.log('Attempting to delete subchannel with ID:', subChannelId);  // Debugging line
+      this.groupService.deleteSubChannel(subChannelId).subscribe(
+        () => {
+          console.log('Subchannel deleted');
+          this.router.navigate(['/active-chat-groups']);
+        },
+        (error) => {
+          console.error('Failed to delete subchannel:', error);
+        }
+      );
+    }
+  }
+
 
   loadCurrentUsername(): void {
     const userId = this.authService.getUserId();

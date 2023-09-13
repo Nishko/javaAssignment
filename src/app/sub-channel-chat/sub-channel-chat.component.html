@@ -1,3 +1,5 @@
+<button *ngIf="isAdminOrGroupAdmin()" (click)="deleteSubChannel()">Delete Subchannel</button>
+
 <div *ngFor="let errorMessage of errorMessages" class="alert alert-danger">
     {{ errorMessage }}
 </div>

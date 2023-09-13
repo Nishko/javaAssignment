@@ -322,6 +322,32 @@ app.post('/api/subchannel/create', (req, res) => {
     });
 });
 
+app.delete('/subchannels/:id', (req, res) => {
+    const subChannelId = req.params.id;
+    console.log('Received request to delete subchannel with ID:', subChannelId);  // Debugging line
+    db.serialize(() => {
+        db.run("BEGIN TRANSACTION");
+
+        db.run(`DELETE FROM messages WHERE channel_id = ?`, [subChannelId], function (err) {
+            if (err) {
+                db.run("ROLLBACK");
+                return res.status(500).send(err.message);
+            }
+
+            db.run(`DELETE FROM subchannels WHERE id = ?`, [subChannelId], function (err) {
+                if (err) {
+                    db.run("ROLLBACK");
+                    return res.status(500).send(err.message);
+                }
+
+                db.run("COMMIT");
+                res.status(200).send({ message: "Subchannel and related messages deleted successfully." });
+            });
+        });
+    });
+});
+
+
 // Endpoint for fetching sub-channels by channel ID
 app.get('/api/subchannels/:channelId', (req, res) => {
     const sql = "SELECT * FROM subchannels WHERE channel_id = ?";

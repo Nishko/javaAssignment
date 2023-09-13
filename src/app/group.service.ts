@@ -27,6 +27,20 @@ export class GroupService {
       );
   }
 
+  deleteSubChannel(subChannelId: string): Observable<any> {
+    const url = `${this.apiUrl}/subchannels/${subChannelId}`;
+    console.log('Deleting subchannel with URL:', url);  // Debugging line
+    return this.http.delete(url)
+      .pipe(
+        tap(response => console.log('Deleted subchannel:', response)),
+        catchError(error => {
+          console.error('Failed to delete subchannel:', error);
+          return throwError(error);
+        })
+      );
+  }
+
+
   getActiveGroups(): Observable<any> {
     return this.http.get(`${this.apiUrl}/get-groups`)
       .pipe(
@@ -87,13 +101,18 @@ export class GroupService {
     const url = `${this.apiUrl}/api/subChannels/${subChannelId}/messages`;
     return this.http.get<ChatMessage[]>(url)
       .pipe(
-        tap(response => console.log('Fetched messages:', response)),
+        tap(response => {
+          console.log('Fetched messages:', response);
+          // Log the user IDs
+          console.log('User IDs in fetched messages:', response.map(msg => msg.userId));
+        }),
         catchError(error => {
           console.error('An error occurred while fetching messages:', error);
           return throwError(error);
         })
       );
   }
+
 
   sendMessageToSubChannel(subChannelId: string, message: ChatMessage): Observable<any> {
     if (!subChannelId || isNaN(Number(subChannelId)) || !message.userId || isNaN(Number(message.userId))) {
@@ -171,7 +190,10 @@ export class GroupService {
     const url = `${this.apiUrl}/user/${userId}`;
     return this.http.get<any>(url)
       .pipe(
-        map(response => response.user ? response.user.name : ''),
+        map(response => {
+          console.log('Full user response:', response);
+          return response.user ? response.user.name : '';
+        }),
         catchError(error => {
           console.error('Failed to fetch user:', error);
           return throwError(error);
