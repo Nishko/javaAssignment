@@ -2,7 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
+const fileUpload = require('express-fileupload');
 
 const app = express();
 const uri = "mongodb+srv://rowanander7:assignment2@assignmentcluster.8jwajhd.mongodb.net/?retryWrites=true&w=majority";
@@ -13,15 +14,30 @@ let db;
 // Middleware setup
 app.use(cors());
 app.use(express.json());
+app.use(fileUpload());
 
 // Initialize connection to MongoDB Atlas
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
+// Migrate and add avatarPath to existing users
+async function migrateAddAvatarPath() {
+    const DEFAULT_AVATAR_PATH = "/assets/image.jpg";
+    const updateResult = await db.collection('users').updateMany(
+        { avatarPath: { $exists: false } },
+        {
+            $set: { avatarPath: DEFAULT_AVATAR_PATH }
+        }
+    );
+    console.log(`Updated ${updateResult.modifiedCount} user(s) with default avatar path.`);
+}
+
+
 // Connect to MongoDB and start the server
 client.connect()
-    .then(() => {
+    .then(async () => {
         console.log("Connected to MongoDB Atlas");
         db = client.db("assignmentCluster");
+        await migrateAddAvatarPath();
         createSuperAdmin();
 
         // Start the server after MongoDB connection is established
@@ -232,15 +248,26 @@ app.get('/api/subchannels/:channelId', async (req, res) => {
 app.get('/user/:id', async (req, res) => {
     try {
         const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
+        console.log("Fetched user data:", user);  // Log the entire user data
+
         if (user) {
+            // Check and log if avatarPath exists
+            if (user.avatarPath) {
+                console.log("avatarPath:", user.avatarPath);
+            } else {
+                console.log("avatarPath not found for user:", req.params.id);
+            }
+
             res.json({ user });
         } else {
             res.status(404).json({ message: 'User not found' });
         }
     } catch (err) {
+        console.error("Error fetching user:", err.message);  // More descriptive error logging
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
+
 
 // Endpoint for fetching channel by ID
 app.get('/channel/:id', async (req, res) => {
@@ -292,6 +319,23 @@ app.delete('/api/user/:userId', async (req, res) => {
     }
 });
 
+// Endpoint for uploading display image
+app.post('/upload-avatar', async (req, res) => {
+    let uploadedFile = req.files.avatar;
+    let userId = req.body.userId;
+    let filePath = `./uploads/${userId}_${uploadedFile.name}`;
+
+    uploadedFile.mv(filePath, async (err) => {
+        if (err) {
+            return res.status(500).send(err);
+        }
+
+        await db.collection('users').updateOne({ _id: new ObjectId(userId) }, { $set: { avatarPath: filePath } });
+        res.json({ message: 'File uploaded!', filePath });
+    });
+});
+
+
 // Endpoint for login
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
@@ -306,7 +350,8 @@ app.post('/login', async (req, res) => {
             username: user.username,
             email: user.email,
             roles,
-            id: user._id
+            id: user._id,
+            avatarPath: user.avatarPath
         });
     } catch (err) {
         res.status(500).send('Error while retrieving data');

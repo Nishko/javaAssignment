@@ -1,8 +1,23 @@
 <div class="details-container">
     <h1>Account Details</h1>
+
+    <!-- Display Avatar -->
+    <div class="avatar-section">
+        <img *ngIf="avatarPath" [src]="avatarPath" alt="User Avatar" class="avatar-image">
+        <p *ngIf="!avatarPath">No avatar uploaded.</p>
+    </div>
+
     <p><strong>Username:</strong> {{username}}</p>
     <p><strong>Email:</strong> {{email}}</p>
     <p><strong>Roles:</strong> {{roles.join(', ')}}</p>
     <p><strong>User ID:</strong> {{userId}}</p>
+
+    <!-- Image Upload Section -->
+    <div class="upload-section">
+        <h3>Upload Avatar</h3>
+        <input type="file" (change)="onFileSelected($event)" />
+        <button (click)="onUpload()">Upload</button>
+    </div>
+
     <button class="delete-button" (click)="deleteAccount()">Delete Account</button>
 </div>
