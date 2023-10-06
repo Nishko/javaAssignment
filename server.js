@@ -1,142 +1,58 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
+const { MongoClient } = require('mongodb');
 
 const app = express();
+const uri = "mongodb+srv://rowanander7:assignment2@assignmentcluster.8jwajhd.mongodb.net/?retryWrites=true&w=majority";
+const PORT = 3000;
 
+let db;
+
+// Middleware setup
 app.use(cors());
 app.use(express.json());
 
-// Initialize SQLite database
-const db = new sqlite3.Database('./mydatabase.db', (err) => {
-    if (err) {
-        return console.error(err.message);
-    }
-    console.log('Connected to SQLite database.');
-});
+// Initialize connection to MongoDB Atlas
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-// Initialize users table
-db.run('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, email TEXT UNIQUE, password TEXT, roles TEXT, groups TEXT)', (err) => {
-    if (err) {
-        console.error(err.message);
-    }
-});
+// Connect to MongoDB and start the server
+client.connect()
+    .then(() => {
+        console.log("Connected to MongoDB Atlas");
+        db = client.db("assignmentCluster");
+        createSuperAdmin();
 
-// Initialize groups table (with channels and roles columns)
-db.run('CREATE TABLE IF NOT EXISTS groups (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, channels TEXT, created_at TEXT, created_by INTEGER, roles TEXT)', (err) => {
-    if (err) {
-        console.error(err.message);
-    }
-});
+        // Start the server after MongoDB connection is established
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
+    })
+    .catch(err => {
+        console.error("Failed to connect to MongoDB:", err);
+        process.exit(1);
+    });
 
-// Initialize group_members table
-db.run('CREATE TABLE IF NOT EXISTS group_members (group_id INTEGER, user_id INTEGER, joined_at TEXT, FOREIGN KEY(group_id) REFERENCES groups(id), FOREIGN KEY(user_id) REFERENCES users(id))', (err) => {
-    if (err) {
-        console.error(err.message);
-    }
-});
-
-// Initialize channel_members table
-db.run('CREATE TABLE IF NOT EXISTS channel_members (channel_id INTEGER, user_id INTEGER, joined_at TEXT, FOREIGN KEY(channel_id) REFERENCES channels(id), FOREIGN KEY(user_id) REFERENCES users(id))', (err) => {
-    if (err) {
-        console.error(err.message);
-    }
-});
-
-// Initialize admin_requests table
-db.run('CREATE TABLE IF NOT EXISTS admin_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, channel_id INTEGER, status TEXT)', (err) => {
-    if (err) {
-        console.error(err.message);
-    }
-});
-
-// Initialize channels table
-db.run('CREATE TABLE IF NOT EXISTS channels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, group_id INTEGER, FOREIGN KEY(group_id) REFERENCES groups(id))', (err) => {
-    if (err) {
-        console.error(err.message);
-    }
-});
-
-// Initialize subchannels table
-db.run('CREATE TABLE IF NOT EXISTS subchannels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, channel_id INTEGER, created_at TEXT, created_by INTEGER, FOREIGN KEY(channel_id) REFERENCES channels(id))', (err) => {
-    if (err) {
-        console.error(err.message);
-    } else {
-        console.log('subchannels table created or already exists');
-    }
-});
-
-// Initialize messages table
-db.run('CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, channel_id INTEGER, text TEXT, timestamp TEXT, FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(channel_id) REFERENCES channels(id))', (err) => {
-    if (err) {
-        console.error(err.message);
-    }
-});
-
-// Create a Super Admin if not exists
 const createSuperAdmin = async () => {
     const superAdminEmail = "super@admin.com";
     const plainTextPassword = "123";
 
-    db.get('SELECT email FROM users WHERE email = ?', [superAdminEmail], async (err, row) => {
-        if (err) {
-            console.error(err.message);
-            return;
-        }
-
-        if (!row) {
-            const hashedPassword = await bcrypt.hash(plainTextPassword, 10);
-            const sql = 'INSERT INTO users (username, email, password, roles, groups) VALUES (?, ?, ?, ?, ?)';
-            const params = ["super", superAdminEmail, hashedPassword, "Super Admin", ""];
-
-            db.run(sql, params, (err) => {
-                if (err) {
-                    console.error(err.message);
-                    return;
-                }
-                console.log("Super Admin created");
-            });
-        } else {
-            console.log("Super Admin already exists");
-        }
-    });
+    const user = await db.collection('users').findOne({ email: superAdminEmail });
+    if (!user) {
+        const hashedPassword = await bcrypt.hash(plainTextPassword, 10);
+        await db.collection('users').insertOne({
+            username: "super",
+            email: superAdminEmail,
+            password: hashedPassword,
+            roles: "Super Admin",
+            groups: ""
+        });
+        console.log("Super Admin created");
+    } else {
+        console.log("Super Admin already exists");
+    }
 };
-
-createSuperAdmin();
-
-const populateSampleGroups = () => {
-    db.get('SELECT COUNT(*) as count FROM groups', (err, row) => {
-        if (err) {
-            console.error(err.message);
-            return;
-        }
-
-        if (row.count === 0) {
-            const sampleGroups = [
-                { name: 'Group1', created_at: new Date().toISOString(), created_by: 1, channels: 'Channel 1,Channel 2', roles: 'Super Admin,Group Admin,User' },
-                { name: 'Group2', created_at: new Date().toISOString(), created_by: 1, channels: 'Channel 1,Channel 2,Channel 3', roles: 'Super Admin,Group Admin,User' },
-                { name: 'Group3', created_at: new Date().toISOString(), created_by: 1, channels: 'Channel 1,Channel 2', roles: 'Super Admin,Group Admin,User' },
-                { name: 'Group4', created_at: new Date().toISOString(), created_by: 2, channels: 'Channel 1,Channel 2', roles: 'Super Admin,Group Admin,User' },
-            ];
-
-            const sql = 'INSERT INTO groups (name, created_at, created_by, channels, roles) VALUES (?, ?, ?, ?, ?)';
-
-            sampleGroups.forEach(group => {
-                db.run(sql, [group.name, group.created_at, group.created_by, group.channels, group.roles], (err) => {
-                    if (err) {
-                        console.error(err.message);
-                    } else {
-                        console.log(`Sample group '${group.name}' added`);
-                    }
-                });
-            });
-        }
-    });
-};
-
-populateSampleGroups();
 
 // Long Polling Logic
 let events = [];
@@ -186,15 +102,13 @@ app.post('/publish', (req, res) => {
     res.status(200).send('Message published');
 });
 
-app.get('/get-groups', (req, res) => {
-    const sql = 'SELECT * FROM groups';
-    db.all(sql, [], (err, rows) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Error querying the database' });
-        }
-        res.status(200).json(rows);
-    });
+app.get('/get-groups', async (req, res) => {
+    try {
+        const groups = await db.collection('groups').find({}).toArray();
+        res.status(200).json(groups);
+    } catch (err) {
+        res.status(500).json({ message: 'Error querying the database' });
+    }
 });
 
 // Endpoint for account creation
@@ -204,317 +118,197 @@ app.post('/create-account', async (req, res) => {
     const defaultRole = "User";
     const defaultGroups = "";
 
-    db.get('SELECT email FROM users WHERE email = ?', [email], (err, row) => {
-        if (err) {
-            return res.status(500).json({ message: 'Error querying the database' });
-        }
-
-        if (row) {
+    try {
+        const existingUser = await db.collection('users').findOne({ email });
+        if (existingUser) {
             return res.status(409).json({ message: 'Email already exists. Redirecting to login page.' });
         }
 
-        const sql = 'INSERT INTO users (username, email, password, roles, groups) VALUES (?, ?, ?, ?, ?)';
-        const params = [username, email, hashedPassword, defaultRole, defaultGroups];
-
-        db.run(sql, params, function (err) {
-            if (err) {
-                return res.status(500).json({ message: 'Error inserting data' });
-            }
-            res.status(200).json({ message: 'Account created successfully!' });
+        await db.collection('users').insertOne({
+            username,
+            email,
+            password: hashedPassword,
+            roles: defaultRole,
+            groups: defaultGroups
         });
-    });
+
+        res.status(200).json({ message: 'Account created successfully!' });
+    } catch (err) {
+        res.status(500).json({ message: 'Error inserting data' });
+    }
 });
 
 // Endpoint for creating groups
-app.post('/create-group', (req, res) => {
+app.post('/create-group', async (req, res) => {
     const { name, createdBy } = req.body;
-    const createdAt = new Date().toISOString();
+    const createdAt = new Date();
 
-    const sql = 'INSERT INTO groups (name, created_at, created_by) VALUES (?, ?, ?)';
-    const params = [name, createdAt, createdBy];
-
-    db.run(sql, params, function (err) {
-        if (err) {
-            return res.status(500).json({ message: 'Error inserting data' });
-        }
-        res.status(200).json({ message: 'Group created successfully!', groupId: this.lastID });
-    });
+    try {
+        const result = await db.collection('groups').insertOne({ name, createdAt, createdBy });
+        res.status(200).json({ message: 'Group created successfully!', groupId: result.insertedId });
+    } catch (err) {
+        res.status(500).json({ message: 'Error inserting data' });
+    }
 });
 
-app.post('/add-channel-member', (req, res) => {
+app.post('/add-channel-member', async (req, res) => {
     const { channelId, userId } = req.body;
-    const joinedAt = new Date().toISOString();
+    const joinedAt = new Date();
 
-    const sql = `INSERT INTO channel_members (channel_id, user_id, joined_at) VALUES (?, ?, ?)`;
-    db.run(sql, [channelId, userId, joinedAt], (err) => {
-        if (err) {
-            return res.status(400).json({ error: err.message });
-        }
-        return res.status(201).json({ message: "Successfully added member to channel" });
-    });
+    try {
+        await db.collection('channel_members').insertOne({ channelId, userId, joinedAt });
+        res.status(201).json({ message: "Successfully added member to channel" });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
-
 
 // Endpoint for requesting admin permissions
-app.post('/request-group-admin', (req, res) => {
-    const userId = req.body.userId;
-    const channelId = req.body.channelId;
+app.post('/request-group-admin', async (req, res) => {
+    const { userId, channelId } = req.body;
 
     if (!userId || !channelId) {
         return res.status(400).json({ message: 'userId and channelId are required.' });
     }
 
-    // Check if request already exists
-    const checkSql = 'SELECT * FROM admin_requests WHERE user_id = ? AND channel_id = ?';
-    db.get(checkSql, [userId, channelId], (err, row) => {
-        if (err) {
-            console.error(err.message);  // Log the error message to the console
-            return res.status(500).json({ message: 'Internal Server Error' });
-        }
-
-        if (row) {
+    try {
+        const existingRequest = await db.collection('admin_requests').findOne({ userId, channelId });
+        if (existingRequest) {
             return res.status(400).json({ message: 'Request already exists' });
         }
 
-        // Insert new request into the admin_requests table
-        const insertSql = 'INSERT INTO admin_requests (user_id, channel_id, status) VALUES (?, ?, ?)';
-        db.run(insertSql, [userId, channelId, 'pending'], function (err) {
-            if (err) {
-                console.error(err.message);  // Log the error message to the console
-                return res.status(500).json({ message: 'Internal Server Error' });
-            }
-
-            res.json({ message: 'Admin request received', requestId: this.lastID });
-        });
-    });
+        const result = await db.collection('admin_requests').insertOne({ userId, channelId, status: 'pending' });
+        res.json({ message: 'Admin request received', requestId: result.insertedId });
+    } catch (err) {
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
 });
 
 // Endpoint for fetching all admin requests
-app.get('/get-admin-requests', (req, res) => {
-    console.log('Received a GET request for /get-admin-requests');
-    const sql = 'SELECT * FROM admin_requests';
-
-    db.all(sql, [], (err, rows) => {
-        if (err) {
-            console.error(err.message);
-            return res.status(500).json({ message: 'Internal Server Error' });
-        }
-
-        res.json({ adminRequests: rows });
-    });
+app.get('/get-admin-requests', async (req, res) => {
+    try {
+        const adminRequests = await db.collection('admin_requests').find({}).toArray();
+        res.json({ adminRequests });
+    } catch (err) {
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
 });
 
 // Endpoint for creating sub-channels
-app.post('/api/subchannel/create', (req, res) => {
+app.post('/api/subchannel/create', async (req, res) => {
     const { name, channelId, createdBy } = req.body;
-    const createdAt = new Date().toISOString();
+    const createdAt = new Date();
 
-    const sql = 'INSERT INTO subchannels (name, channel_id, created_at, created_by) VALUES (?, ?, ?, ?)';
-    const params = [name, channelId, createdAt, createdBy];
-
-    db.run(sql, params, function (err) {
-        if (err) {
-            console.error("Database error:", err);
-            return res.status(500).json({ message: 'Error inserting data' });
-        }
-        console.log(`Sub-channel created with ID: ${this.lastID}`);
-        res.status(200).json({ message: 'Sub-channel created successfully!', subchannelId: this.lastID });
-    });
+    try {
+        const result = await db.collection('subchannels').insertOne({ name, channelId, createdAt, createdBy });
+        res.status(200).json({ message: 'Sub-channel created successfully!', subchannelId: result.insertedId });
+    } catch (err) {
+        res.status(500).json({ message: 'Error inserting data' });
+    }
 });
 
-app.delete('/subchannels/:id', (req, res) => {
+app.delete('/subchannels/:id', async (req, res) => {
     const subChannelId = req.params.id;
-    console.log('Received request to delete subchannel with ID:', subChannelId);  // Debugging line
-    db.serialize(() => {
-        db.run("BEGIN TRANSACTION");
-
-        db.run(`DELETE FROM messages WHERE channel_id = ?`, [subChannelId], function (err) {
-            if (err) {
-                db.run("ROLLBACK");
-                return res.status(500).send(err.message);
-            }
-
-            db.run(`DELETE FROM subchannels WHERE id = ?`, [subChannelId], function (err) {
-                if (err) {
-                    db.run("ROLLBACK");
-                    return res.status(500).send(err.message);
-                }
-
-                db.run("COMMIT");
-                res.status(200).send({ message: "Subchannel and related messages deleted successfully." });
-            });
-        });
-    });
+    try {
+        await db.collection('messages').deleteMany({ channel_id: subChannelId });
+        await db.collection('subchannels').deleteOne({ _id: new ObjectId(subChannelId) });
+        res.status(200).send({ message: "Subchannel and related messages deleted successfully." });
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
 });
-
 
 // Endpoint for fetching sub-channels by channel ID
-app.get('/api/subchannels/:channelId', (req, res) => {
-    const sql = "SELECT * FROM subchannels WHERE channel_id = ?";
-    const params = [req.params.channelId];
-    db.all(sql, params, (err, rows) => {
-        if (err) {
-            res.status(400).json({ "error": err.message });
-            return;
-        }
-        res.json({
-            "message": "success",
-            "data": rows
-        });
-    });
+app.get('/api/subchannels/:channelId', async (req, res) => {
+    try {
+        const subchannels = await db.collection('subchannels').find({ channel_id: req.params.channelId }).toArray();
+        res.json({ message: "success", data: subchannels });
+    } catch (err) {
+        res.status(400).json({ "error": err.message });
+    }
 });
 
-
 // Endpoint for fetching user by ID
-app.get('/user/:id', (req, res) => {
-    console.log('Received a GET request for /user/:id');
-    const userId = req.params.id;
-
-    // SQL Query to get user by ID
-    const sql = 'SELECT * FROM users WHERE id = ?';
-
-    db.get(sql, [userId], (err, row) => {
-        console.log("Query Result:", row);
-        if (err) {
-            console.error(err.message);
-            return res.status(500).json({ message: 'Internal Server Error' });
-        }
-
-        if (row) {
-            console.log("User found:", row);
-            res.json({ user: row });
+app.get('/user/:id', async (req, res) => {
+    try {
+        const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
+        if (user) {
+            res.json({ user });
         } else {
-            console.log("User not found");
             res.status(404).json({ message: 'User not found' });
         }
-    });
+    } catch (err) {
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
 });
 
 // Endpoint for fetching channel by ID
-app.get('/channel/:id', (req, res) => {
-    console.log(`Received a GET request for /channel/${req.params.id}`);
-
-    const channelId = req.params.id;
-    console.log(`Channel ID: ${channelId}`);
-
-    const sql = 'SELECT * FROM channels WHERE id = ?';
-    console.log(`Executing SQL query: ${sql} with ID: ${channelId}`);
-
-    console.log("DB configuration:", JSON.stringify(db, null, 2));
-
-    db.get(sql, [channelId], (err, row) => {
-        if (err) {
-            console.error("SQL Error:", err);
-            return res.status(500).json({ message: 'Internal Server Error' });
-        }
-
-        console.log("Query Result:", row);
-
-        if (row) {
-            console.log("Query Result:", row);
-            res.status(200).json({ channel: row });
+app.get('/channel/:id', async (req, res) => {
+    try {
+        const channel = await db.collection('channels').findOne({ _id: new ObjectId(req.params.id) });
+        if (channel) {
+            res.status(200).json({ channel });
         } else {
-            console.log("Channel not found");
             res.status(404).json({ message: 'Channel not found' });
         }
-    });
+    } catch (err) {
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
 });
 
 // Endpoint for sending messages
-app.post('/api/subChannels/:subChannelId/sendMessage', (req, res) => {
-    console.log('Request received for sending message');
+app.post('/api/subChannels/:subChannelId/sendMessage', async (req, res) => {
     const { userId, channelId, text } = req.body;
-    const timestamp = new Date().toISOString();
-
-    // Validate channelId and userId (assuming they should be integers)
-    if (!Number.isInteger(Number(channelId)) || !Number.isInteger(Number(userId))) {
-        return res.status(400).json({ message: 'Invalid channelId or userId' });
+    const timestamp = new Date();
+    try {
+        const result = await db.collection('messages').insertOne({ userId, channelId, text, timestamp });
+        res.status(200).json({ message: 'Message sent successfully!', messageId: result.insertedId });
+    } catch (err) {
+        res.status(500).json({ message: 'Error inserting message' });
     }
-
-    // Validate text
-    if (typeof text !== 'string' || text.length === 0) {
-        return res.status(400).json({ message: 'Invalid message text' });
-    }
-
-    const sql = 'INSERT INTO messages (user_id, channel_id, text, timestamp) VALUES (?, ?, ?, ?)';
-    const params = [userId, channelId, text, timestamp];
-
-    db.run(sql, params, function (err) {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Error inserting message' });
-        }
-        res.status(200).json({ message: 'Message sent successfully!', messageId: this.lastID });
-    });
 });
 
 // Endpoint for fetching messages
-app.get('/api/subChannels/:subChannelId/messages', (req, res) => {
-    console.log('Request received for fetching messages');
-    const channelId = req.params.subChannelId;
-
-    const sql = 'SELECT * FROM messages WHERE channel_id = ?';
-    const params = [channelId];
-
-    db.all(sql, params, (err, rows) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Error fetching messages' });
-        }
-        res.status(200).json(rows);
-    });
+app.get('/api/subChannels/:subChannelId/messages', async (req, res) => {
+    try {
+        const messages = await db.collection('messages').find({ channel_id: req.params.subChannelId }).toArray();
+        res.status(200).json(messages);
+    } catch (err) {
+        res.status(500).json({ message: 'Error fetching messages' });
+    }
 });
 
 // Endpoint for deleting account
-app.delete('/api/user/:userId', (req, res) => {
-    const userId = req.params.userId;
-
-    db.run(`DELETE FROM users WHERE id = ?`, userId, function (err) {
-        if (err) {
-            return res.status(400).json({ error: err.message });
-        }
-        if (this.changes === 0) {
-            return res.status(404).json({ error: "User not found" });
+app.delete('/api/user/:userId', async (req, res) => {
+    try {
+        const result = await db.collection('users').deleteOne({ _id: new ObjectId(req.params.userId) });
+        if (result.deletedCount === 0) {
+            res.status(404).json({ error: "User not found" });
         } else {
-            return res.status(200).json({ message: 'Successfully deleted user' });
+            res.status(200).json({ message: 'Successfully deleted user' });
         }
-    });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
 // Endpoint for login
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
     const { email, password } = req.body;
-    console.log(`Received email: ${email}, password: ${password}`);  // Debug log here
-
-    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, row) => {
-        if (err) {
-            console.error(err);  // error for debugging
-            res.status(500).send('Error while retrieving data');
-            return;
-        }
-        console.log(`Query Result: ${JSON.stringify(row)}`);  // Debug log here
-
-        if (!row || !await bcrypt.compare(password, row.password)) {
-            console.log('Failed bcrypt comparison or no such user.');  // Debug log here
+    try {
+        const user = await db.collection('users').findOne({ email });
+        if (!user || !await bcrypt.compare(password, user.password)) {
             res.status(401).json({ message: 'Invalid email or password' });
             return;
         }
-
-        const roles = row.roles ? row.roles.split(',') : [];  // Convert comma-separated roles into an array
-        const userId = row.id;
-
-        console.log('Successful login.');  // Debug log here
+        const roles = user.roles ? user.roles.split(',') : [];
         res.status(200).json({
-            username: row.username,
-            email: row.email,
-            roles,  // Send roles
-            id: userId  // Send user ID
+            username: user.username,
+            email: user.email,
+            roles,
+            id: user._id
         });
-    });
+    } catch (err) {
+        res.status(500).send('Error while retrieving data');
+    }
 });
-
-
-app.listen(3000, () => {
-    console.log('Server running on http://localhost:3000');
-});
-
