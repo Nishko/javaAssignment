@@ -7,7 +7,7 @@ const bcrypt = require('bcrypt');
 const app = express();
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
 // Initialize SQLite database
 const db = new sqlite3.Database('./mydatabase.db', (err) => {
