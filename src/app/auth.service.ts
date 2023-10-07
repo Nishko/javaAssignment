@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import io from 'socket.io-client';
+import { Observable, BehaviorSubject, Subject } from 'rxjs';
 import { Router } from '@angular/router';
 
 @Injectable({
@@ -9,13 +8,14 @@ import { Router } from '@angular/router';
 })
 export class AuthService {
   private apiUrl = 'http://localhost:3000';
+  private socket = io(this.apiUrl); // Establish a connection to the server
   private loggedInUsername: string = '';
   private loggedInEmail: string = '';
   private authStatus = new BehaviorSubject<boolean>(this.isAuthenticated());
   roles: string[] = [];
   userId: number = 0;
 
-  constructor(private http: HttpClient, private router: Router) {
+  constructor(private router: Router) {
     // Load the saved state from localStorage
     this.loggedInUsername = localStorage.getItem('username') || '';
     this.loggedInEmail = localStorage.getItem('email') || '';
@@ -45,30 +45,42 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
-  // Login Method
+  // Login Method using socket.io
   login(email: string, password: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/login`, { email, password }).pipe(
-      tap((response: any) => {
-        if (response && response.username) {
-          this.loggedInUsername = response.username;
-          this.loggedInEmail = response.email;
-          this.roles = response.roles || [];
-          this.userId = response.id || 0;
+    const responseSubject = new Subject<any>();
 
-          // Save to localStorage
-          localStorage.setItem('username', this.loggedInUsername);
-          localStorage.setItem('email', this.loggedInEmail);
-          localStorage.setItem('roles', JSON.stringify(this.roles));
-          localStorage.setItem('userId', this.userId.toString());
+    this.socket.emit('login', { email, password });
+    this.socket.on('loginResponse', (response: any) => {
+      if (response && response.username) {
+        this.loggedInUsername = response.username;
+        this.loggedInEmail = response.email;
+        this.roles = response.roles || [];
+        this.userId = response.id || 0;
 
-          this.authStatus.next(true);
-        }
-      })
-    );
+        // Save to localStorage
+        localStorage.setItem('username', this.loggedInUsername);
+        localStorage.setItem('email', this.loggedInEmail);
+        localStorage.setItem('roles', JSON.stringify(this.roles));
+        localStorage.setItem('userId', this.userId.toString());
+
+        this.authStatus.next(true);
+
+        responseSubject.next(response);
+      }
+    });
+
+    return responseSubject.asObservable();
   }
 
   getAdminRequests(): Observable<any> {
-    return this.http.get('/api/get-admin-requests');
+    const requestSubject = new Subject<any>();
+
+    this.socket.emit('getAdminRequests');
+    this.socket.on('adminRequestsData', (data: any) => {
+      requestSubject.next(data);
+    });
+
+    return requestSubject.asObservable();
   }
 
   isAuthenticated(): boolean {

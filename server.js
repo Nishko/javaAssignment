@@ -1,23 +1,86 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const { MongoClient, ObjectId } = require('mongodb');
 const fileUpload = require('express-fileupload');
+const fs = require('fs');
+const http = require('http');
+const socketIo = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+    cors: {
+        origin: "http://localhost:4200",
+        methods: ["GET", "POST"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+        credentials: true
+    }
+});
+
 const uri = "mongodb+srv://rowanander7:assignment2@assignmentcluster.8jwajhd.mongodb.net/?retryWrites=true&w=majority";
 const PORT = 3000;
 
 let db;
 
+// Check if 'uploads' directory exists, and create it if not
+if (!fs.existsSync('./uploads')) {
+    fs.mkdirSync('./uploads');
+}
+
 // Middleware setup
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:4200',
+    credentials: true,
+    methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(fileUpload());
+app.use('/uploads', express.static('uploads'));
+
+io.on('connection', (socket) => {
+    console.log('A user connected');
+
+    // Socket event for login
+    socket.on('login', async (data) => {
+        const { email, password } = data;
+        try {
+            const user = await db.collection('users').findOne({ email });
+            if (!user || !await bcrypt.compare(password, user.password)) {
+                socket.emit('loginResponse', { error: 'Invalid email or password' });
+                return;
+            }
+            const roles = user.roles ? user.roles.split(',') : [];
+            socket.emit('loginResponse', {
+                username: user.username,
+                email: user.email,
+                roles,
+                id: user._id,
+                avatarPath: user.avatarPath
+            });
+        } catch (err) {
+            socket.emit('loginResponse', { error: 'Error while retrieving data' });
+        }
+    });
+
+    // Socket event for fetching admin requests
+    socket.on('getAdminRequests', async () => {
+        try {
+            const adminRequests = await db.collection('admin_requests').find({}).toArray();
+            socket.emit('adminRequestsData', { adminRequests });
+        } catch (err) {
+            socket.emit('adminRequestsData', { error: 'Internal Server Error' });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
+});
 
 // Initialize connection to MongoDB Atlas
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+const client = new MongoClient(uri);
 
 // Migrate and add avatarPath to existing users
 async function migrateAddAvatarPath() {
@@ -31,7 +94,6 @@ async function migrateAddAvatarPath() {
     console.log(`Updated ${updateResult.modifiedCount} user(s) with default avatar path.`);
 }
 
-
 // Connect to MongoDB and start the server
 client.connect()
     .then(async () => {
@@ -41,7 +103,7 @@ client.connect()
         createSuperAdmin();
 
         // Start the server after MongoDB connection is established
-        app.listen(PORT, () => {
+        server.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);
         });
     })
@@ -236,8 +298,14 @@ app.delete('/subchannels/:id', async (req, res) => {
 
 // Endpoint for fetching sub-channels by channel ID
 app.get('/api/subchannels/:channelId', async (req, res) => {
+    // Check if channelId is provided
+    if (!req.params.channelId) {
+        return res.status(400).json({ message: "Channel ID is missing." });
+    }
+
     try {
-        const subchannels = await db.collection('subchannels').find({ channel_id: req.params.channelId }).toArray();
+        // Convert channelId to ObjectId and fetch subchannels
+        const subchannels = await db.collection('subchannels').find({ channel_id: new ObjectId(req.params.channelId) }).toArray();
         res.json({ message: "success", data: subchannels });
     } catch (err) {
         res.status(400).json({ "error": err.message });
@@ -321,13 +389,18 @@ app.delete('/api/user/:userId', async (req, res) => {
 
 // Endpoint for uploading display image
 app.post('/upload-avatar', async (req, res) => {
+    console.log("Inside /upload-avatar");
     let uploadedFile = req.files.avatar;
     let userId = req.body.userId;
-    let filePath = `./uploads/${userId}_${uploadedFile.name}`;
 
-    uploadedFile.mv(filePath, async (err) => {
+    // Sanitize the filename: replace spaces with underscores
+    let sanitizedFileName = `${userId}_${uploadedFile.name}`.replace(/\s+/g, '_');
+    let filePath = `/uploads/${sanitizedFileName}`;
+
+    uploadedFile.mv(`./uploads/${sanitizedFileName}`, async (err) => { // Using the sanitized filename
         if (err) {
-            return res.status(500).send(err);
+            console.error("Error uploading file:", err); // Log the error for debugging
+            return res.status(500).send("Server error during file upload."); // Send a generic message
         }
 
         await db.collection('users').updateOne({ _id: new ObjectId(userId) }, { $set: { avatarPath: filePath } });

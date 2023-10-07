@@ -19,33 +19,34 @@ export class LoginComponent {
     private authService: AuthService
   ) { }
 
-  async onSubmit() {
+  onSubmit() {
     console.log(`Form submitted with email: ${this.email} and password: ${this.password}`); // Debug log
     this.errorMessage = ''; // Clear any previous error messages
 
-    try {
-      const res = await this.authService.login(this.email, this.password).toPromise();
-      if (!res) {
-        throw new Error('Invalid login');
-      }
-
-      // Navigate to the details page
-      this.router.navigate(['/details'], {
-        state: {
-          username: res.username,
-          email: res.email
+    this.authService.login(this.email, this.password).subscribe(
+      res => {
+        if (res) {
+          // Navigate to the details page
+          this.router.navigate(['/details'], {
+            state: {
+              username: res.username,
+              email: res.email
+            }
+          });
+        } else {
+          this.errorMessage = 'Invalid email or password';
         }
-      });
-    } catch (error: unknown) {
-      console.error("Error details:", error);
-
-      if (error instanceof HttpErrorResponse) {
-        console.error("Server returned code: ", error.status, ", body was: ", error.error);
+      },
+      error => {
+        console.error("Error details:", error);
+        if (error instanceof HttpErrorResponse) {
+          console.error("Server returned code: ", error.status, ", body was: ", error.error);
+        }
+        this.errorMessage = 'Invalid email or password';
       }
-
-      this.errorMessage = 'Invalid email or password';
-    }
+    );
   }
+
 }
 
 
