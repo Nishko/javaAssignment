@@ -5,6 +5,7 @@ import { ChatMessage } from '../models/chat-message.model';
 import { AuthService } from '../auth.service';
 import { forkJoin, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { io } from 'socket.io-client';
 
 @Component({
   selector: 'app-sub-channel-chat',
@@ -16,14 +17,14 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
   public newMessage: string = '';
   public currentUsername?: string;
   public errorMessages: string[] = [];
-
+  private socket: any;
   private destroy$ = new Subject<void>();
 
   constructor(
     private route: ActivatedRoute,
     private groupService: GroupService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
   ) {
     this.loadCurrentUsername();
   }
@@ -32,6 +33,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     const subChannelId = this.route.snapshot.params['id'];
     this.loadMessagesFromLocalStorage(subChannelId);
     this.loadCurrentUsername();
+    this.socket = io('http://localhost:3000');
 
     this.authService.getAuthStatus()
       .pipe(takeUntil(this.destroy$))
@@ -56,10 +58,8 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
   deleteSubChannel(): void {
     if (window.confirm('Are you sure you want to delete this subchannel?')) {
       const subChannelId = this.route.snapshot.params['id'];
-      console.log('Attempting to delete subchannel with ID:', subChannelId);  // Debugging line
       this.groupService.deleteSubChannel(subChannelId).subscribe(
         () => {
-          console.log('Subchannel deleted');
           this.router.navigate(['/active-chat-groups']);
         },
         (error) => {
@@ -69,13 +69,11 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     }
   }
 
-
   loadCurrentUsername(): void {
     const userId = this.authService.getUserId();
     this.groupService.getUserNameById(userId).subscribe(
       username => {
         this.currentUsername = username;
-        console.log('Current username:', this.currentUsername); // Debugging line
       },
       error => {
         console.error('Failed to fetch username:', error);
@@ -88,7 +86,6 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     const savedMessages = localStorage.getItem(`messages_${subChannelId}`);
     if (savedMessages) {
       this.messages = JSON.parse(savedMessages);
-      console.log('Loaded messages from localStorage:', this.messages); // Debugging line
     }
   }
 
@@ -96,18 +93,14 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     this.groupService.getMessagesForSubChannel(subChannelId).subscribe(
       (data: ChatMessage[]) => {
         const uniqueUserIds = Array.from(new Set(data.map(message => message.userId))).filter(Boolean) as number[];
-        console.log('Unique User IDs:', uniqueUserIds);  // Debugging line
 
         forkJoin(
           uniqueUserIds.map(userId => this.groupService.getUserNameById(userId))
         ).subscribe(
           usernames => {
-            console.log('Usernames:', usernames);  // Debugging line
             const userMap = Object.fromEntries(
               uniqueUserIds.map((userId, index) => [userId, usernames[index]])
             );
-
-            console.log('User Map:', userMap);  // Debugging line
 
             this.messages = data.map(message => ({
               ...message,
@@ -143,17 +136,11 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
       timestamp: new Date().toISOString()
     };
 
-    this.groupService.sendMessageToSubChannel(subChannelId, newChatMessage).subscribe(
-      () => {
-        this.messages.push({ ...newChatMessage, sender: this.currentUsername || 'Unknown' });
-        this.messages = [...this.messages];
-        localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
-        this.newMessage = '';
-      },
-      error => {
-        console.error('Failed to send message:', error);
-        this.errorMessages.push('Failed to send message.');
-      }
-    );
+    this.socket.emit('send-message', newChatMessage);
+
+    this.messages.push({ ...newChatMessage, sender: this.currentUsername || 'Unknown' });
+    this.messages = [...this.messages];
+    localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
+    this.newMessage = '';
   }
 }

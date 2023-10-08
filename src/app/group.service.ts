@@ -74,6 +74,7 @@ export class GroupService {
       channelId,
       createdBy
     };
+    console.log('Payload sent to server:', payload);
 
     return this.http.post(url, payload)
       .pipe(
@@ -85,8 +86,9 @@ export class GroupService {
       );
   }
 
+
   getSubChannels(channelId: string): Observable<any> {
-    const url = `${this.apiUrl}/api/subchannels/${channelId}`;
+    const url = `${this.apiUrl}/api/subchannel/${channelId}`;
     return this.http.get<any>(url)
       .pipe(
         tap(response => console.log('Fetched sub-channels:', response)),
@@ -98,7 +100,7 @@ export class GroupService {
   }
 
   getMessagesForSubChannel(subChannelId: string): Observable<ChatMessage[]> {
-    const url = `${this.apiUrl}/api/subChannels/${subChannelId}/messages`;
+    const url = `${this.apiUrl}/api/subchannel/${subChannelId}/messages`;
     return this.http.get<ChatMessage[]>(url)
       .pipe(
         tap(response => {
@@ -125,7 +127,7 @@ export class GroupService {
       return throwError('Invalid message text');
     }
 
-    const url = `${this.apiUrl}/api/subChannels/${subChannelId}/sendMessage`;
+    const url = `${this.apiUrl}/api/subchannel/${subChannelId}/sendMessage`;
     return this.http.post(url, message)
       .pipe(
         tap(response => console.log('Message sent:', response)),
@@ -135,7 +137,6 @@ export class GroupService {
         })
       );
   }
-
 
   requestGroupAdmin(userId: string, channelId: string): Observable<any> {
     const url = `${this.apiUrl}/request-group-admin`;

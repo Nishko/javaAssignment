@@ -6,6 +6,7 @@ const fileUpload = require('express-fileupload');
 const fs = require('fs');
 const http = require('http');
 const socketIo = require('socket.io');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const server = http.createServer(app);
@@ -35,6 +36,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.options('*', cors());
 app.use(express.json());
 app.use(fileUpload());
 app.use('/uploads', express.static('uploads'));
@@ -274,22 +276,38 @@ app.get('/get-admin-requests', async (req, res) => {
 
 // Endpoint for creating sub-channels
 app.post('/api/subchannel/create', async (req, res) => {
+    console.log("Received request to create sub-channel");
+    console.log("Request Body:", req.body);
+
     const { name, channelId, createdBy } = req.body;
     const createdAt = new Date();
 
     try {
-        const result = await db.collection('subchannels').insertOne({ name, channelId, createdAt, createdBy });
+        const newSubchannel = {
+            _id: uuidv4(), // Explicitly set the _id using a UUID
+            name,
+            channelId,
+            createdAt,
+            createdBy
+        };
+        const result = await db.collection('subchannels').insertOne(newSubchannel);
+        console.log("Sub-channel inserted successfully:", result);
         res.status(200).json({ message: 'Sub-channel created successfully!', subchannelId: result.insertedId });
     } catch (err) {
-        res.status(500).json({ message: 'Error inserting data' });
+        console.error("Error occurred during sub-channel creation:", err);
+        if (err.code === 11000) {
+            res.status(500).json({ message: 'Duplicate key error. Try again.' });
+        } else {
+            res.status(500).json({ message: 'Error inserting data' });
+        }
     }
 });
 
-app.delete('/subchannels/:id', async (req, res) => {
+app.delete('/subchannel/:id', async (req, res) => {
     const subChannelId = req.params.id;
     try {
-        await db.collection('messages').deleteMany({ channel_id: subChannelId });
-        await db.collection('subchannels').deleteOne({ _id: new ObjectId(subChannelId) });
+        await db.collection('messages').deleteMany({ channelId: subChannelId }); // Using channelId as string
+        await db.collection('subchannels').deleteOne({ _id: new ObjectId(subChannelId) }); // This remains ObjectId because it's the actual ID of the subchannel
         res.status(200).send({ message: "Subchannel and related messages deleted successfully." });
     } catch (err) {
         res.status(500).send(err.message);
@@ -297,20 +315,22 @@ app.delete('/subchannels/:id', async (req, res) => {
 });
 
 // Endpoint for fetching sub-channels by channel ID
-app.get('/api/subchannels/:channelId', async (req, res) => {
+app.get('/api/subchannel/:channelId', async (req, res) => {
     // Check if channelId is provided
     if (!req.params.channelId) {
         return res.status(400).json({ message: "Channel ID is missing." });
     }
 
     try {
-        // Convert channelId to ObjectId and fetch subchannels
-        const subchannels = await db.collection('subchannels').find({ channel_id: new ObjectId(req.params.channelId) }).toArray();
+        // Fetch subchannels without converting channelId to ObjectId
+        const subchannels = await db.collection('subchannels').find({ channelId: req.params.channelId }).toArray();
         res.json({ message: "success", data: subchannels });
     } catch (err) {
         res.status(400).json({ "error": err.message });
     }
 });
+
+
 
 // Endpoint for fetching user by ID
 app.get('/user/:id', async (req, res) => {
@@ -352,7 +372,7 @@ app.get('/channel/:id', async (req, res) => {
 });
 
 // Endpoint for sending messages
-app.post('/api/subChannels/:subChannelId/sendMessage', async (req, res) => {
+app.post('/api/subchannel/:subChannelId/sendMessage', async (req, res) => {
     const { userId, channelId, text } = req.body;
     const timestamp = new Date();
     try {
@@ -364,9 +384,9 @@ app.post('/api/subChannels/:subChannelId/sendMessage', async (req, res) => {
 });
 
 // Endpoint for fetching messages
-app.get('/api/subChannels/:subChannelId/messages', async (req, res) => {
+app.get('/api/subchannel/:subChannelId/messages', async (req, res) => {
     try {
-        const messages = await db.collection('messages').find({ channel_id: req.params.subChannelId }).toArray();
+        const messages = await db.collection('messages').find({ channelId: req.params.subChannelId }).toArray();
         res.status(200).json(messages);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching messages' });

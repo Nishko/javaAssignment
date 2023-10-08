@@ -14,7 +14,7 @@
 <div *ngIf="isLoggedIn()">
     <ul>
         <li *ngFor="let group of activeGroups">
-            <button routerLink="/channel/{{group.id}}">{{ group.name }}</button>
+            <button routerLink="/channel/{{group._id}}">{{ group.name }}</button>
         </li>
     </ul>
 </div>

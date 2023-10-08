@@ -14,15 +14,14 @@
 </div>
 
 <!-- List of Sub-Channels -->
-<div *ngIf="hasSubChannels">
+<div *ngIf="subChannels?.length > 0">
     <h3>Sub-Channels:</h3>
     <ul>
         <li *ngFor="let subChannel of subChannels">
-            <a [routerLink]="['/sub-channel-chat', subChannel.id]">{{ subChannel.name }}</a>
+            <a [routerLink]="['/sub-channel-chat', subChannel._id]">{{ subChannel.name }}</a>
         </li>
     </ul>
 </div>
-
 
 <!-- Loading or Empty state -->
 <div *ngIf="subChannels === null">
@@ -31,4 +30,9 @@
 
 <div *ngIf="subChannels?.length === 0">
     <p>No Sub-Channels available.</p>
+</div>
+
+<!-- Error Display -->
+<div *ngIf="error">
+    <p>Error: {{ error }}</p>
 </div>

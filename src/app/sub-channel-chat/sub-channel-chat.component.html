@@ -11,7 +11,7 @@
 <div *ngFor="let message of messages; let i = index">
     <div>
         <span class="message-info">
-            {{ message.sender || 'Unknown' }} | {{ message.timestamp || 'Unknown Time' }}
+            {{ message.sender || 'Unknown' }} | {{ message.timestamp | date:'medium' || 'Unknown Time' }}
         </span>
         <span>: {{ message.text || 'No Content' }}</span>
     </div>

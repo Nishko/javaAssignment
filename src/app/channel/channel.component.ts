@@ -15,6 +15,7 @@ export class ChannelComponent implements OnInit {
   showCreateSubChannelForm: boolean = false;  // Toggle form visibility
   subChannelName: string = '';  // Bind to form input
   subChannels: any[] = [];  // List to keep track of sub-channels
+  error: string | null = null;
 
   constructor(
     private cdr: ChangeDetectorRef,
@@ -36,6 +37,7 @@ export class ChannelComponent implements OnInit {
       },
       error => {
         console.log('Failed to add as a chatter');  // Debugging
+        this.error = 'Failed to add as a chatter';
         console.error(error);  // Debugging
       }
     );
@@ -47,12 +49,13 @@ export class ChannelComponent implements OnInit {
 
   fetchSubChannels(channelId: string): void {
     this.groupService.getSubChannels(channelId).subscribe(
-      (data: any) => {
-        this.subChannels = data.data;
+      (response: any) => {
+        this.subChannels = response.data;
         console.log("Has sub channels: ", this.hasSubChannels);
       },
       (error: any) => {
         console.error('Failed to fetch sub-channels:', error);
+        this.error = 'Failed to fetch sub-channels. Please try again.';
       }
     );
   }
