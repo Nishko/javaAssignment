@@ -187,20 +187,23 @@ export class GroupService {
       );
   }
 
-  getUserNameById(userId: number): Observable<string> {
+  getUserDetailsById(userId: number): Observable<{ username: string, avatarPath: string }> {
     const url = `${this.apiUrl}/user/${userId}`;
     return this.http.get<any>(url)
       .pipe(
         map(response => {
-          console.log('Full user response:', response);
-          return response.user ? response.user.name : '';
+          return {
+            username: response.user ? response.user.name : '',
+            avatarPath: response.user ? response.user.avatarPath : ''
+          };
         }),
         catchError(error => {
-          console.error('Failed to fetch user:', error);
+          console.error('Failed to fetch user details:', error);
           return throwError(error);
         })
       );
   }
+
 
   getChannelNameById(channelId: number): Observable<string> {
     const url = `${this.apiUrl}/channel/${channelId}`;

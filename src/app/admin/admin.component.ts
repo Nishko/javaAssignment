@@ -38,10 +38,10 @@ export class AdminComponent implements OnInit {
         const requests = data.adminRequests as AdminRequest[];
 
         const augmentedRequests = requests.map((request: AdminRequest) => {
-          const userName$ = this.groupService.getUserNameById(request.user_id).pipe(
+          const userDetails$ = this.groupService.getUserDetailsById(request.user_id).pipe(
             catchError(err => {
-              console.error('Error fetching user name:', err);
-              return of('Unknown');
+              console.error('Error fetching user details:', err);
+              return of({ username: 'Unknown', avatarPath: '' });
             })
           );
           const channelName$ = this.groupService.getChannelNameById(request.channel_id).pipe(
@@ -50,9 +50,9 @@ export class AdminComponent implements OnInit {
               return of('Unknown');
             })
           );
-          return forkJoin([userName$, channelName$]).pipe(
-            map(([userName, channelName]) => {
-              return { ...request, userName, channelName };
+          return forkJoin([userDetails$, channelName$]).pipe(
+            map(([userDetails, channelName]) => {
+              return { ...request, userName: userDetails.username, channelName };
             })
           );
         });
@@ -73,6 +73,7 @@ export class AdminComponent implements OnInit {
       }
     );
   }
+
 
   approveRequest(requestId: number): void {
     this.groupService.approveAdminRequest(requestId).subscribe(

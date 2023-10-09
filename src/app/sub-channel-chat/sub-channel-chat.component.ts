@@ -33,7 +33,14 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     const subChannelId = this.route.snapshot.params['id'];
     this.loadMessagesFromLocalStorage(subChannelId);
     this.loadCurrentUsername();
-    this.socket = io('http://localhost:3000');
+    this.socket = io('http://localhost:3000', { withCredentials: true });
+
+    // Listen to new messages
+    this.socket.on('new-message', (message: ChatMessage) => {
+      this.messages.push(message);
+      this.messages = [...this.messages];
+      localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
+    });
 
     this.authService.getAuthStatus()
       .pipe(takeUntil(this.destroy$))
@@ -48,6 +55,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.socket.disconnect();
   }
 
   isAdminOrGroupAdmin(): boolean {
@@ -71,13 +79,13 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
 
   loadCurrentUsername(): void {
     const userId = this.authService.getUserId();
-    this.groupService.getUserNameById(userId).subscribe(
-      username => {
-        this.currentUsername = username;
+    this.groupService.getUserDetailsById(userId).subscribe(
+      userDetails => {
+        this.currentUsername = userDetails.username;
       },
       error => {
-        console.error('Failed to fetch username:', error);
-        this.errorMessages.push('Failed to fetch username.');
+        console.error('Failed to fetch user details:', error);
+        this.errorMessages.push('Failed to fetch user details.');
       }
     );
   }
@@ -95,24 +103,28 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
         const uniqueUserIds = Array.from(new Set(data.map(message => message.userId))).filter(Boolean) as number[];
 
         forkJoin(
-          uniqueUserIds.map(userId => this.groupService.getUserNameById(userId))
+          uniqueUserIds.map(userId => this.groupService.getUserDetailsById(userId))
         ).subscribe(
-          usernames => {
-            const userMap = Object.fromEntries(
-              uniqueUserIds.map((userId, index) => [userId, usernames[index]])
+          userDetailsArray => {
+            const userDetailsMap = Object.fromEntries(
+              uniqueUserIds.map((userId, index) => [userId, userDetailsArray[index]])
             );
 
-            this.messages = data.map(message => ({
-              ...message,
-              sender: userMap[message.userId ?? -1] || 'Unknown'
-            }));
+            this.messages = data.map(message => {
+              const avatarPath = userDetailsMap[message.userId ?? -1]?.avatarPath || '';
+              return {
+                ...message,
+                sender: userDetailsMap[message.userId ?? -1]?.username || 'Unknown',
+                avatarPath
+              };
+            });
 
             this.messages = [...this.messages];
             localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
           },
           error => {
-            console.error('Failed to fetch usernames:', error);
-            this.errorMessages.push('Failed to fetch usernames.');
+            console.error('Failed to fetch user details:', error);
+            this.errorMessages.push('Failed to fetch user details.');
           }
         );
       },
@@ -121,6 +133,10 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
         this.errorMessages.push('Failed to fetch messages.');
       }
     );
+  }
+
+  onImageError(event: any) {
+    console.error('Error loading the image:', event);
   }
 
   sendMessage(): void {

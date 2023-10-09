@@ -76,6 +76,20 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Socket event for sending and broadcasting messages
+    socket.on('send-message', async (message) => {
+        try {
+            // Save the message to the database
+            await db.collection('messages').insertOne(message);
+
+            // Broadcast the message to all connected clients
+            io.emit('new-message', message);
+        } catch (err) {
+            console.error('Error handling send-message:', err);
+            socket.emit('messageResponse', { error: 'Error while processing the message' });
+        }
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected');
     });
