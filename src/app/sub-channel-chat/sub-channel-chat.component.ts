@@ -19,6 +19,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
   public errorMessages: string[] = [];
   private socket: any;
   private destroy$ = new Subject<void>();
+  selectedImage?: File;
 
   constructor(
     private route: ActivatedRoute,
@@ -38,6 +39,13 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     // Listen to new messages
     this.socket.on('new-message', (message: ChatMessage) => {
       this.messages.push(message);
+      this.messages = [...this.messages];
+      localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
+    });
+    // Image Upload 
+    this.socket.on('new-image', (imagePath: string) => {
+      console.log("Received imagePath:", imagePath);  // <-- Added this line
+      this.messages.push({ type: 'image', content: imagePath, sender: this.currentUsername || 'Unknown', timestamp: new Date().toISOString() });
       this.messages = [...this.messages];
       localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
     });
@@ -135,28 +143,76 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     );
   }
 
+  onImageSelected(event: any): void {
+    this.selectedImage = event.target.files[0];
+    if (this.selectedImage) {
+      const reader = new FileReader();
+      reader.readAsDataURL(this.selectedImage);
+      reader.onload = () => {
+        this.socket.emit('send-image', reader.result);
+      };
+    }
+  }
+
+  uploadImage(event: any): void {
+    const file = event.target.files[0];
+    const formData = new FormData();
+    formData.append('image', file, file.name);
+
+    // Use the service method to handle HTTP requests:
+    this.groupService.uploadImage(formData).subscribe(response => {
+      const imagePath = response.imagePath;
+      const newChatMessage: ChatMessage = {
+        userId: this.authService.getUserId(),
+        channelId: Number(this.route.snapshot.params['id']),
+        type: 'image',
+        content: imagePath,
+        timestamp: new Date().toISOString()
+      };
+      this.socket.emit('send-message', newChatMessage);
+    });
+  }
+
   onImageError(event: any) {
     console.error('Error loading the image:', event);
   }
 
   sendMessage(): void {
-    if (this.newMessage.trim() === '') return;
-
     const userId = this.authService.getUserId();
     const subChannelId = this.route.snapshot.params['id'];
 
-    const newChatMessage: ChatMessage = {
-      userId,
-      channelId: Number(subChannelId),
-      text: this.newMessage,
-      timestamp: new Date().toISOString()
-    };
+    if (this.newMessage.trim() !== '') {
+      const newChatMessage: ChatMessage = {
+        userId,
+        channelId: Number(subChannelId),
+        type: 'text',
+        content: this.newMessage,
+        timestamp: new Date().toISOString()
+      };
+      this.socket.emit('send-message', newChatMessage);
+      this.messages.push({ ...newChatMessage, sender: this.currentUsername || 'Unknown' });
+      this.newMessage = '';
+    }
 
-    this.socket.emit('send-message', newChatMessage);
+    if (this.selectedImage) {
+      // Handle image sending here
+      const formData = new FormData();
+      formData.append('image', this.selectedImage, this.selectedImage.name);
+      this.groupService.uploadImage(formData).subscribe(response => {
+        const imagePath = response.imagePath;
+        const newChatMessage: ChatMessage = {
+          userId,
+          channelId: Number(subChannelId),
+          type: 'image',
+          content: imagePath,
+          timestamp: new Date().toISOString()
+        };
+        this.socket.emit('send-message', newChatMessage);
+      });
+      this.selectedImage = undefined; // Reset after sending
+    }
 
-    this.messages.push({ ...newChatMessage, sender: this.currentUsername || 'Unknown' });
     this.messages = [...this.messages];
     localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
-    this.newMessage = '';
   }
 }

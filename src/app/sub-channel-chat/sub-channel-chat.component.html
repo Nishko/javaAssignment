@@ -9,6 +9,7 @@
 </div>
 
 <div *ngFor="let message of messages; let i = index" class="message-wrapper">
+    <!-- Display user avatar -->
     <img *ngIf="message.avatarPath && message.avatarPath.length > 0"
         [src]="'http://localhost:3000' + message.avatarPath" alt="User Avatar" class="user-avatar"
         (error)="onImageError($event)">
@@ -17,11 +18,14 @@
         <span class="message-info">
             {{ message.sender || 'Unknown' }} | {{ message.timestamp | date:'medium' || 'Unknown Time' }}
         </span>
-        <span>: {{ message.text || 'No Content' }}</span>
+        <span *ngIf="message.type === 'text'">: {{ message.content || 'No Content' }}</span>
+        <img *ngIf="message.type === 'image'" [src]="message.content" alt="Chat image">
     </div>
 </div>
 
+
 <div class="message-input">
     <input type="text" [(ngModel)]="newMessage" placeholder="Type your message here" />
-    <button (click)="sendMessage()" [disabled]="newMessage.trim() === ''">Send</button>
+    <input type="file" (change)="onImageSelected($event)" />
+    <button (click)="sendMessage()" [disabled]="newMessage.trim() === '' && !selectedImage">Send</button>
 </div>

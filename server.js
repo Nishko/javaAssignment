@@ -29,6 +29,12 @@ if (!fs.existsSync('./uploads')) {
     fs.mkdirSync('./uploads');
 }
 
+const CHAT_IMAGE_DIR = './chat_images';
+if (!fs.existsSync(CHAT_IMAGE_DIR)) {
+    fs.mkdirSync(CHAT_IMAGE_DIR);
+}
+
+
 // Middleware setup
 app.use(cors({
     origin: 'http://localhost:4200',
@@ -40,6 +46,8 @@ app.options('*', cors());
 app.use(express.json());
 app.use(fileUpload());
 app.use('/uploads', express.static('uploads'));
+app.use('/chat_images', express.static('chat_images'));
+
 
 io.on('connection', (socket) => {
     console.log('A user connected');
@@ -88,6 +96,14 @@ io.on('connection', (socket) => {
             console.error('Error handling send-message:', err);
             socket.emit('messageResponse', { error: 'Error while processing the message' });
         }
+    });
+
+    // Socket event for sending images to messages
+    socket.on('send-image', (base64Image) => {
+        const imageBuffer = Buffer.from(base64Image.split(",")[1], "base64");
+        const imagePath = `${CHAT_IMAGE_DIR}/${uuidv4()}.png`;
+        fs.writeFileSync(imagePath, imageBuffer);
+        io.emit('new-image', imagePath.replace('./', '/'));
     });
 
     socket.on('disconnect', () => {
@@ -439,6 +455,22 @@ app.post('/upload-avatar', async (req, res) => {
 
         await db.collection('users').updateOne({ _id: new ObjectId(userId) }, { $set: { avatarPath: filePath } });
         res.json({ message: 'File uploaded!', filePath });
+    });
+});
+
+app.post('/upload-image', async (req, res) => {
+    console.log("Received upload-image request");
+    if (!req.files || Object.keys(req.files).length === 0) {
+        return res.status(400).send('No files were uploaded.');
+    }
+
+    let uploadedFile = req.files.image;
+    let uniqueFilename = uuidv4() + '-' + uploadedFile.name;
+    let filePath = './uploads/' + uniqueFilename;
+
+    uploadedFile.mv(filePath, function (err) {
+        if (err) return res.status(500).send(err);
+        res.send({ imagePath: '/uploads/' + uniqueFilename }); // Return the path to the client
     });
 });
 

@@ -40,6 +40,9 @@ export class GroupService {
       );
   }
 
+  uploadImage(formData: FormData): Observable<any> {
+    return this.http.post(`${this.apiUrl}/upload-image`, formData);
+  }
 
   getActiveGroups(): Observable<any> {
     return this.http.get(`${this.apiUrl}/get-groups`)
