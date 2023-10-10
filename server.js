@@ -411,9 +411,15 @@ app.post('/api/subchannel/:subChannelId/sendMessage', async (req, res) => {
 // Endpoint for fetching messages
 app.get('/api/subchannel/:subChannelId/messages', async (req, res) => {
     try {
-        const messages = await db.collection('messages').find({ channelId: req.params.subChannelId }).toArray();
+        // Convert the subChannelId from a string to an ObjectId
+        const subChannelObjectId = new ObjectId(req.params.subChannelId);
+
+        // Use the ObjectId in the MongoDB query
+        const messages = await db.collection('messages').find({ channelId: subChannelObjectId }).toArray();
+
         res.status(200).json(messages);
     } catch (err) {
+        console.error("Error fetching messages:", err);  // Log the error for better debugging
         res.status(500).json({ message: 'Error fetching messages' });
     }
 });

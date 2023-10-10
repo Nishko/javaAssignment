@@ -190,7 +190,7 @@ export class GroupService {
       );
   }
 
-  getUserDetailsById(userId: number): Observable<{ username: string, avatarPath: string }> {
+  getUserDetailsById(userId: string): Observable<{ username: string, avatarPath: string }> {
     const url = `${this.apiUrl}/user/${userId}`;
     return this.http.get<any>(url)
       .pipe(

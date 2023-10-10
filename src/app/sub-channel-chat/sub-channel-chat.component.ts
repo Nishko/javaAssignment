@@ -80,7 +80,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
 
   loadCurrentUsername(): void {
     const userId = this.authService.getUserId();
-    this.groupService.getUserDetailsById(userId).subscribe(
+    this.groupService.getUserDetailsById(String(userId)).subscribe(
       userDetails => {
         this.currentUsername = userDetails.username;
       },
@@ -101,10 +101,11 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
   loadMessages(subChannelId: string): void {
     this.groupService.getMessagesForSubChannel(subChannelId).subscribe(
       (data: ChatMessage[]) => {
+        console.log('Raw fetched messages:', data);
         const uniqueUserIds = Array.from(new Set(data.map(message => message.userId))).filter(Boolean) as number[];
 
         forkJoin(
-          uniqueUserIds.map(userId => this.groupService.getUserDetailsById(userId))
+          uniqueUserIds.map(userId => this.groupService.getUserDetailsById(String(userId)))
         ).subscribe(
           userDetailsArray => {
             const userDetailsMap = Object.fromEntries(
@@ -135,6 +136,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
       }
     );
   }
+
 
   uploadImage(event: any): void {
     const file = event.target.files[0];

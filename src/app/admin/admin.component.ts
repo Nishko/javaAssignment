@@ -38,7 +38,8 @@ export class AdminComponent implements OnInit {
         const requests = data.adminRequests as AdminRequest[];
 
         const augmentedRequests = requests.map((request: AdminRequest) => {
-          const userDetails$ = this.groupService.getUserDetailsById(request.user_id).pipe(
+          // Convert request.user_id to string
+          const userDetails$ = this.groupService.getUserDetailsById(String(request.user_id)).pipe(
             catchError(err => {
               console.error('Error fetching user details:', err);
               return of({ username: 'Unknown', avatarPath: '' });
