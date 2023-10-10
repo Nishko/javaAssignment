@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
+const path = require('path');
 const { MongoClient, ObjectId } = require('mongodb');
 const fileUpload = require('express-fileupload');
 const fs = require('fs');
@@ -29,11 +30,7 @@ if (!fs.existsSync('./uploads')) {
     fs.mkdirSync('./uploads');
 }
 
-const CHAT_IMAGE_DIR = './chat_images';
-if (!fs.existsSync(CHAT_IMAGE_DIR)) {
-    fs.mkdirSync(CHAT_IMAGE_DIR);
-}
-
+const CHAT_IMAGE_DIR = './uploads';
 
 // Middleware setup
 app.use(cors({
@@ -45,9 +42,7 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 app.use(fileUpload());
-app.use('/uploads', express.static('uploads'));
-app.use('/chat_images', express.static('chat_images'));
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 io.on('connection', (socket) => {
     console.log('A user connected');
@@ -101,7 +96,7 @@ io.on('connection', (socket) => {
     // Socket event for sending images to messages
     socket.on('send-image', (base64Image) => {
         const imageBuffer = Buffer.from(base64Image.split(",")[1], "base64");
-        const imagePath = `${CHAT_IMAGE_DIR}/${uuidv4()}.png`;
+        const imagePath = `${CHAT_IMAGE_DIR}/${uuidv4()}.jpg`;
         fs.writeFileSync(imagePath, imageBuffer);
         io.emit('new-image', imagePath.replace('./', '/'));
     });

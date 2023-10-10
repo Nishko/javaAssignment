@@ -19,10 +19,9 @@
             {{ message.sender || 'Unknown' }} | {{ message.timestamp | date:'medium' || 'Unknown Time' }}
         </span>
         <span *ngIf="message.type === 'text'">: {{ message.content || 'No Content' }}</span>
-        <img *ngIf="message.type === 'image'" [src]="message.content" alt="Chat image">
+        <img *ngIf="message.type === 'image'" [src]="message.content" alt="Chat image" (error)="onImageError($event)">
     </div>
 </div>
-
 
 <div class="message-input">
     <input type="text" [(ngModel)]="newMessage" placeholder="Type your message here" />
