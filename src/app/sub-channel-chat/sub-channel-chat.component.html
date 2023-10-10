@@ -25,6 +25,6 @@
 
 <div class="message-input">
     <input type="text" [(ngModel)]="newMessage" placeholder="Type your message here" />
-    <input type="file" (change)="onImageSelected($event)" />
+    <input type="file" (change)="uploadImage($event)" />
     <button (click)="sendMessage()" [disabled]="newMessage.trim() === '' && !selectedImage">Send</button>
 </div>

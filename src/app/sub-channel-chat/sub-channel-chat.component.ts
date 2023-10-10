@@ -42,13 +42,6 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
       this.messages = [...this.messages];
       localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
     });
-    // Image Upload 
-    this.socket.on('new-image', (imagePath: string) => {
-      console.log("Received imagePath:", imagePath);  // <-- Added this line
-      this.messages.push({ type: 'image', content: imagePath, sender: this.currentUsername || 'Unknown', timestamp: new Date().toISOString() });
-      this.messages = [...this.messages];
-      localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
-    });
 
     this.authService.getAuthStatus()
       .pipe(takeUntil(this.destroy$))
@@ -143,17 +136,6 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     );
   }
 
-  onImageSelected(event: any): void {
-    this.selectedImage = event.target.files[0];
-    if (this.selectedImage) {
-      const reader = new FileReader();
-      reader.readAsDataURL(this.selectedImage);
-      reader.onload = () => {
-        this.socket.emit('send-image', reader.result);
-      };
-    }
-  }
-
   uploadImage(event: any): void {
     const file = event.target.files[0];
     const formData = new FormData();
@@ -161,7 +143,8 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
 
     // Use the service method to handle HTTP requests:
     this.groupService.uploadImage(formData).subscribe(response => {
-      const imagePath = response.imagePath;
+      const serverAddress = 'http://localhost:3000'; // Include the server address
+      const imagePath = `${serverAddress}/uploads/${response.imagePath}`;
       const newChatMessage: ChatMessage = {
         userId: this.authService.getUserId(),
         channelId: Number(this.route.snapshot.params['id']),
@@ -173,6 +156,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     });
   }
 
+
   onImageError(event: any) {
     console.error('Error loading the image:', event);
   }
@@ -180,6 +164,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
   sendMessage(): void {
     const userId = this.authService.getUserId();
     const subChannelId = this.route.snapshot.params['id'];
+    const serverAddress = 'http://localhost:3000'; // Define the server address here to reuse it
 
     if (this.newMessage.trim() !== '') {
       const newChatMessage: ChatMessage = {
@@ -195,11 +180,10 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     }
 
     if (this.selectedImage) {
-      // Handle image sending here
       const formData = new FormData();
       formData.append('image', this.selectedImage, this.selectedImage.name);
       this.groupService.uploadImage(formData).subscribe(response => {
-        const imagePath = response.imagePath;
+        const imagePath = `${serverAddress}/uploads/${response.imagePath}`; // Prefix the server address to the image path
         const newChatMessage: ChatMessage = {
           userId,
           channelId: Number(subChannelId),
@@ -215,4 +199,5 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     this.messages = [...this.messages];
     localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
   }
+
 }
