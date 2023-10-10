@@ -16,10 +16,13 @@
 
     <div>
         <span class="message-info">
-            {{ message.sender || 'Unknown' }} | {{ message.timestamp | date:'medium' || 'Unknown Time' }}
+            {{ message.username || 'Unknown' }} | {{ message.timestamp | date:'medium' || 'Unknown Time' }}
         </span>
+        <!-- Display text content -->
         <span *ngIf="message.type === 'text'">: {{ message.content || 'No Content' }}</span>
-        <img *ngIf="message.type === 'image'" [src]="message.content" alt="Chat image" (error)="onImageError($event)">
+        <!-- Display image content -->
+        <img *ngIf="message.type === 'image'" [src]="'http://localhost:3000' + message.content" alt="Chat image"
+            (error)="onImageError($event)">
     </div>
 </div>
 
