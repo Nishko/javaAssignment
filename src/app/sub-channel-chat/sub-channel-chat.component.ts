@@ -6,6 +6,8 @@ import { AuthService } from '../auth.service';
 import { forkJoin, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { io } from 'socket.io-client';
+import { ChangeDetectorRef, NgZone } from '@angular/core';
+
 
 @Component({
   selector: 'app-sub-channel-chat',
@@ -26,6 +28,8 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     private groupService: GroupService,
     private authService: AuthService,
     private router: Router,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {
     this.loadCurrentUsername();
   }
@@ -38,9 +42,11 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
 
     // Listen to new messages
     this.socket.on('new-message', (message: ChatMessage) => {
-      this.messages.push(message);
-      this.messages = [...this.messages];
-      localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
+      this.ngZone.run(() => {  // Using NgZone to ensure Angular picks up the changes
+        this.messages.push(message);
+        this.messages = [...this.messages];
+        localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
+      });
     });
 
     this.authService.getAuthStatus()
@@ -102,7 +108,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     this.groupService.getMessagesForSubChannel(subChannelId).subscribe(
       (data: ChatMessage[]) => {
         console.log('Raw fetched messages:', data);
-        const uniqueUserIds = Array.from(new Set(data.map(message => message.userId))).filter(Boolean) as string[]; // Changed to string[]
+        const uniqueUserIds = Array.from(new Set(data.map(message => message.userId))).filter(Boolean) as string[];
 
         forkJoin(
           uniqueUserIds.map(userId => this.groupService.getUserDetailsById(String(userId)))
@@ -112,14 +118,20 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
               uniqueUserIds.map((userId, index) => [userId, userDetailsArray[index]])
             );
             console.log('userDetailsMap:', userDetailsMap);
+            console.log('Complete userDetailsArray:', userDetailsArray);
 
             this.messages = data.map(message => {
               console.log('message.userId:', message.userId);
+              const userIdForMessage = message.userId ?? '-1';
+              const userDataFromMap = userDetailsMap[userIdForMessage];
+              console.log(`Data for userId ${userIdForMessage} in map:`, userDataFromMap);
+              const usernameFromMap = userDataFromMap?.username;
+              const avatarPath = userDataFromMap?.avatarPath || '';
+              console.log("Extracted username from map:", usernameFromMap);
 
-              const avatarPath = userDetailsMap[message.userId ?? -1]?.avatarPath || '';
               return {
                 ...message,
-                sender: userDetailsMap[message.userId ?? -1]?.username || 'Unknown',
+                sender: usernameFromMap || 'Unknown',
                 avatarPath
               };
             });
@@ -139,6 +151,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
       }
     );
   }
+
 
 
   uploadImage(event: any): void {
@@ -172,38 +185,40 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     console.log("Current subChannelId:", subChannelId);
     const serverAddress = 'http://localhost:3000'; // Define the server address here to reuse it
 
-    if (this.newMessage.trim() !== '') {
-      const newChatMessage: ChatMessage = {
-        userId,
-        channelId: subChannelId, // Removed Number conversion
-        type: 'text',
-        content: this.newMessage,
-        timestamp: new Date().toISOString()
-      };
-      this.socket.emit('send-message', newChatMessage);
-      this.messages.push({ ...newChatMessage, sender: this.currentUsername || 'Unknown' });
-      this.newMessage = '';
-    }
-
-    if (this.selectedImage) {
-      const formData = new FormData();
-      formData.append('image', this.selectedImage, this.selectedImage.name);
-      this.groupService.uploadImage(formData).subscribe(response => {
-        const imagePath = `${serverAddress}/uploads/${response.imagePath}`; // Prefix the server address to the image path
+    this.ngZone.run(() => {  // Using NgZone here too
+      if (this.newMessage.trim() !== '') {
         const newChatMessage: ChatMessage = {
           userId,
-          channelId: subChannelId, // Removed Number conversion
-          type: 'image',
-          content: imagePath,
+          channelId: subChannelId,
+          type: 'text',
+          content: this.newMessage,
           timestamp: new Date().toISOString()
         };
         this.socket.emit('send-message', newChatMessage);
-      });
-      this.selectedImage = undefined; // Reset after sending
-    }
+        this.messages.push({ ...newChatMessage, sender: this.currentUsername || 'Unknown' });
+        this.newMessage = '';
+      }
 
-    this.messages = [...this.messages];
-    localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
+      if (this.selectedImage) {
+        const formData = new FormData();
+        formData.append('image', this.selectedImage, this.selectedImage.name);
+        this.groupService.uploadImage(formData).subscribe(response => {
+          const imagePath = `${serverAddress}/uploads/${response.imagePath}`;
+          const newChatMessage: ChatMessage = {
+            userId,
+            channelId: subChannelId,
+            type: 'image',
+            content: imagePath,
+            timestamp: new Date().toISOString()
+          };
+          this.socket.emit('send-message', newChatMessage);
+        });
+        this.selectedImage = undefined;
+      }
+
+      this.messages = [...this.messages];
+      localStorage.setItem(`messages_${subChannelId}`, JSON.stringify(this.messages));
+    });
   }
 
 }

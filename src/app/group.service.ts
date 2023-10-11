@@ -196,7 +196,7 @@ export class GroupService {
       .pipe(
         map(response => {
           return {
-            username: response.user ? response.user.name : '',
+            username: response.user ? response.user.username : '',
             avatarPath: response.user ? response.user.avatarPath : ''
           };
         }),
@@ -206,6 +206,7 @@ export class GroupService {
         })
       );
   }
+
 
 
   getChannelNameById(channelId: number): Observable<string> {
