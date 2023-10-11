@@ -42,3 +42,7 @@ testem.log
 Thumbs.db
 
 *.zip
+.env.test
+/chat_images
+/uploads
+

@@ -508,3 +508,5 @@ app.post('/login', async (req, res) => {
         res.status(500).send('Error while retrieving data');
     }
 });
+
+
