@@ -162,10 +162,10 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     // Use the service method to handle HTTP requests:
     this.groupService.uploadImage(formData).subscribe(response => {
       const serverAddress = 'http://localhost:3000'; // Include the server address
-      const imagePath = `${serverAddress}/uploads/${response.imagePath}`;
+      const imagePath = `${serverAddress}${response.imagePath}`;
       const newChatMessage: ChatMessage = {
         userId: this.authService.getUserId().toString(), // Convert userId to string
-        channelId: this.route.snapshot.params['id'], // Remove the Number conversion
+        channelId: this.route.snapshot.params['id'],
         type: 'image',
         content: imagePath,
         timestamp: new Date().toISOString()

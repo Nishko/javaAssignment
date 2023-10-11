@@ -334,16 +334,24 @@ app.post('/api/subchannel/create', async (req, res) => {
     }
 });
 
-app.delete('/subchannel/:id', async (req, res) => {
+app.delete('/subchannels/:id', async (req, res) => {
     const subChannelId = req.params.id;
     try {
-        await db.collection('messages').deleteMany({ channelId: subChannelId }); // Using channelId as string
-        await db.collection('subchannels').deleteOne({ _id: new ObjectId(subChannelId) }); // This remains ObjectId because it's the actual ID of the subchannel
+        const messagesDeleteResult = await db.collection('messages').deleteMany({ channelId: subChannelId });
+        const subchannelDeleteResult = await db.collection('subchannels').deleteOne({ _id: subChannelId });
+
+
+        if (subchannelDeleteResult.deletedCount === 0) {
+            return res.status(404).send({ message: "Subchannel not found." });
+        }
+
         res.status(200).send({ message: "Subchannel and related messages deleted successfully." });
     } catch (err) {
+        console.error("Error deleting subchannel:", err);
         res.status(500).send(err.message);
     }
 });
+
 
 // Endpoint for fetching sub-channels by channel ID
 app.get('/api/subchannel/:channelId', async (req, res) => {

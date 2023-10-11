@@ -21,8 +21,7 @@
         <!-- Display text content -->
         <span *ngIf="message.type === 'text'">: {{ message.content || 'No Content' }}</span>
         <!-- Display image content -->
-        <img *ngIf="message.type === 'image'" [src]="'http://localhost:3000' + message.content" alt="Chat image"
-            (error)="onImageError($event)">
+        <img *ngIf="message.type === 'image'" [src]="message.content" alt="Chat image" (error)="onImageError($event)">
     </div>
 </div>
 
