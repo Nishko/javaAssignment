@@ -166,12 +166,13 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
   sendMessage(): void {
     const userId = this.authService.getUserId();
     const subChannelId = this.route.snapshot.params['id'];
+    console.log("Current subChannelId:", subChannelId);
     const serverAddress = 'http://localhost:3000'; // Define the server address here to reuse it
 
     if (this.newMessage.trim() !== '') {
       const newChatMessage: ChatMessage = {
         userId,
-        channelId: Number(subChannelId),
+        channelId: subChannelId,
         type: 'text',
         content: this.newMessage,
         timestamp: new Date().toISOString()

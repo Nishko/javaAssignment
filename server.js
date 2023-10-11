@@ -81,7 +81,13 @@ io.on('connection', (socket) => {
 
     // Socket event for sending and broadcasting messages
     socket.on('send-message', async (message) => {
+        console.log('Received message:', message);
         try {
+            // Ensure channelId is provided
+            if (!message.channelId) {
+                return socket.emit('messageResponse', { error: 'channelId is required' });
+            }
+
             // Save the message to the database
             await db.collection('messages').insertOne(message);
 
@@ -398,7 +404,8 @@ app.get('/channel/:id', async (req, res) => {
 
 // Endpoint for sending messages
 app.post('/api/subchannel/:subChannelId/sendMessage', async (req, res) => {
-    const { userId, channelId, text } = req.body;
+    const { userId, text } = req.body;
+    const channelId = req.params.subChannelId; // Get the channelId from the URL
     const timestamp = new Date();
     try {
         const result = await db.collection('messages').insertOne({ userId, channelId, text, timestamp });
@@ -411,18 +418,14 @@ app.post('/api/subchannel/:subChannelId/sendMessage', async (req, res) => {
 // Endpoint for fetching messages
 app.get('/api/subchannel/:subChannelId/messages', async (req, res) => {
     try {
-        // Convert the subChannelId from a string to an ObjectId
-        const subChannelObjectId = new ObjectId(req.params.subChannelId);
-
-        // Use the ObjectId in the MongoDB query
-        const messages = await db.collection('messages').find({ channelId: subChannelObjectId }).toArray();
-
+        // Use the string subChannelId directly in the MongoDB query
+        const messages = await db.collection('messages').find({ channelId: req.params.subChannelId }).toArray();
         res.status(200).json(messages);
     } catch (err) {
         console.error("Error fetching messages:", err);  // Log the error for better debugging
         res.status(500).json({ message: 'Error fetching messages' });
     }
-});
+})
 
 // Endpoint for deleting account
 app.delete('/api/user/:userId', async (req, res) => {
