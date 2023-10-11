@@ -1,29 +1,65 @@
-# JavaAssignment: An Angular-based Chat Application
+# JavaScriptAssignment: Angular-based Chat Application
 
-This is a chat application built with Angular, featuring user authentication, group chats, and admin features. 
+"JavaScriptAssignment" is a real-time chat application built using Angular. It offers features such as user authentication, group chats, and admin functionalities.
 
-By Rowan Anderson
-s5092185
+> Developed by Rowan Anderson (s5092185)
 
 ## Table of Contents
 
-1. [Project Organization](#project-organization)
-2. [Data Structures](#data-structures)
-3. [Angular Architecture](#angular-architecture)
-4. [Server-Side Routes](#server-side-routes)
-5. [User Interactions](#user-interactions)
-6. [Development Setup](#development-setup)
-7. [Additional Commands](#additional-commands)
+- [Project Organization](#project-organization)
+- [Data Structures](#data-structures)
+- [Angular Architecture](#angular-architecture)
+- [API Endpoints](#api-endpoints)
+- [User Interactions](#user-interactions)
+- [Development Setup](#development-setup)
+- [Additional Commands](#additional-commands)
 
 ## Project Organization
 
-This project is managed with Git and features two main branches: `main` and a secondary experimental branch. The `main` branch is for stable, well-tested features, while the secondary branch is used for more experimental development.
+The project utilizes Git for version control, with two primary branches: 
+- `main`: Stable, well-tested features.
+- `newStart`: Experimental features and ongoing development.
 
-Commits are made when substantial progress is achieved or when the code is in a stable state for the day.
+> Note: The `main` branch contains the first part of the assignment, while `newStart` is used for the second part. The `attempt2` branch was a contingency during significant changes.
+
+Commits are structured to reflect milestones and stable checkpoints.
 
 ## Data Structures
 
-The backend relies on a SQLite database (`mydatabase.db`) for persisting information like users, groups, channels, messages, and roles. Additionally, local storage is used to tackle some persistence challenges.
+The application interacts with a MongoDB database (`assignmentCluster`) and local storage, handling entities like users, groups, channels, messages, and roles. A separate test database (`testDatabase`) is also maintained.
+
+### Entities
+
+#### User
+- **username**: String (user's name)
+- **email**: String (user's login email)
+- **password**: Hashed string
+- **roles**: Array of strings (user's roles)
+- **avatarPath**: String (path to the user's avatar)
+- **groups**: Array of group IDs
+
+#### Group
+- **name**: String (group name)
+- **createdBy**: String (ID of the creator)
+- **createdAt**: Date (creation time)
+
+#### Channel
+- **name**: String (channel name)
+- **createdBy**: String (ID of the creator)
+- **createdAt**: Date (creation time)
+- **members**: Array of user IDs
+
+#### Sub-channel
+- **name**: String (sub-channel name)
+- **channelId**: String (parent channel ID)
+- **createdBy**: String (ID of the creator)
+- **createdAt**: Date (creation time)
+
+#### Message
+- **channelId**: String (channel or sub-channel ID)
+- **userId**: String (sender's ID)
+- **text**: String (message content)
+- **timestamp**: Date (sending time)
 
 ## Angular Architecture
 
