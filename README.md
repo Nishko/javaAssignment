@@ -219,6 +219,8 @@ Depending on the user's role, different UI elements are visible. For instance:
 - Super Admins have special tabs to approve/deny admin requests.
 - Authenticated users see the active chat channels, whereas guests do not.
 - Various controls are role-specific (Admin-only, Guest-only, etc.).
+- Users can send messages and have them updated in real time.
+- Users are displayed in a chat by their username and avatar displayed.
 
 ## Development Setup
 
