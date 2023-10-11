@@ -79,7 +79,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
   }
 
   loadCurrentUsername(): void {
-    const userId = this.authService.getUserId();
+    const userId = this.authService.getUserId().toString();
     this.groupService.getUserDetailsById(String(userId)).subscribe(
       userDetails => {
         this.currentUsername = userDetails.username;
@@ -102,7 +102,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     this.groupService.getMessagesForSubChannel(subChannelId).subscribe(
       (data: ChatMessage[]) => {
         console.log('Raw fetched messages:', data);
-        const uniqueUserIds = Array.from(new Set(data.map(message => message.userId))).filter(Boolean) as number[];
+        const uniqueUserIds = Array.from(new Set(data.map(message => message.userId))).filter(Boolean) as string[]; // Changed to string[]
 
         forkJoin(
           uniqueUserIds.map(userId => this.groupService.getUserDetailsById(String(userId)))
@@ -111,8 +111,11 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
             const userDetailsMap = Object.fromEntries(
               uniqueUserIds.map((userId, index) => [userId, userDetailsArray[index]])
             );
+            console.log('userDetailsMap:', userDetailsMap);
 
             this.messages = data.map(message => {
+              console.log('message.userId:', message.userId);
+
               const avatarPath = userDetailsMap[message.userId ?? -1]?.avatarPath || '';
               return {
                 ...message,
@@ -148,8 +151,8 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
       const serverAddress = 'http://localhost:3000'; // Include the server address
       const imagePath = `${serverAddress}/uploads/${response.imagePath}`;
       const newChatMessage: ChatMessage = {
-        userId: this.authService.getUserId(),
-        channelId: Number(this.route.snapshot.params['id']),
+        userId: this.authService.getUserId().toString(), // Convert userId to string
+        channelId: this.route.snapshot.params['id'], // Remove the Number conversion
         type: 'image',
         content: imagePath,
         timestamp: new Date().toISOString()
@@ -164,7 +167,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
   }
 
   sendMessage(): void {
-    const userId = this.authService.getUserId();
+    const userId = this.authService.getUserId().toString();
     const subChannelId = this.route.snapshot.params['id'];
     console.log("Current subChannelId:", subChannelId);
     const serverAddress = 'http://localhost:3000'; // Define the server address here to reuse it
@@ -172,7 +175,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
     if (this.newMessage.trim() !== '') {
       const newChatMessage: ChatMessage = {
         userId,
-        channelId: subChannelId,
+        channelId: subChannelId, // Removed Number conversion
         type: 'text',
         content: this.newMessage,
         timestamp: new Date().toISOString()
@@ -189,7 +192,7 @@ export class SubChannelChatComponent implements OnInit, OnDestroy {
         const imagePath = `${serverAddress}/uploads/${response.imagePath}`; // Prefix the server address to the image path
         const newChatMessage: ChatMessage = {
           userId,
-          channelId: Number(subChannelId),
+          channelId: subChannelId, // Removed Number conversion
           type: 'image',
           content: imagePath,
           timestamp: new Date().toISOString()

@@ -1,6 +1,6 @@
 export interface ChatMessage {
-    userId?: number;
-    channelId?: number;
+    userId?: string;
+    channelId?: string;
     sender?: string;
     text?: string;
     type?: 'text' | 'image';
